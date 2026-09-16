@@ -1,0 +1,58 @@
+# 모임공간 도서관리시스템
+
+모임공간에 있는 500여 권의 책을 관리하기 위한 웹 기반 도서관리시스템입니다.
+Node.js + Express + SQLite로 만들어져 별도 DB 설치 없이 바로 실행할 수 있습니다.
+
+## 주요 기능
+
+- **도서 등록**: ISBN 직접 입력 또는 카메라로 바코드 스캔 → 도서 정보 자동 조회(제목/저자/출판사/표지)
+- **검색/분류**: 제목·저자·ISBN 검색, 분류·대출상태 필터링
+- **대출/반납 관리**: 대출 처리, 반납 처리, 연체 자동 표시(반납예정일 초과)
+- **회원 관리**: 회원 등록/수정/삭제, 회원별 대출 이력 조회
+- **대시보드**: 전체 도서 수, 대출 가능/대출 중, 연체, 회원 수 한눈에 보기
+
+## 실행 방법
+
+```bash
+npm install
+cp .env.example .env   # 필요시 알라딘 API 키 설정
+npm start
+```
+
+브라우저에서 http://localhost:3000 접속. 데이터는 `data/library.db` (SQLite)에 저장됩니다.
+
+모바일에서 카메라 바코드 스캔 기능을 쓰려면 HTTPS 또는 localhost 환경이 필요합니다 (브라우저 카메라 API 제약).
+
+## ISBN 자동 조회 설정 (선택)
+
+국내 도서 정보를 정확히 가져오려면 [알라딘 Open API](https://blog.aladin.co.kr/openapi/) TTB 키를 발급받아 `.env`에 설정하세요.
+
+```
+ALADIN_TTB_KEY=발급받은키
+```
+
+키를 설정하지 않으면 Open Library API로 대체 조회합니다 (국내서 커버리지는 낮습니다). 두 API 모두 실패하면 수동으로 정보를 입력하면 됩니다.
+
+## 폴더 구조
+
+```
+server/
+  index.js          # Express 앱 진입점
+  db.js             # SQLite 초기화 및 스키마
+  isbn-lookup.js    # 알라딘/Open Library ISBN 조회
+  routes/
+    books.js        # 도서 CRUD, ISBN 조회
+    members.js       # 회원 CRUD
+    loans.js         # 대출/반납 처리
+    dashboard.js      # 통계
+public/
+  index.html        # SPA 화면
+  css/style.css
+  js/app.js         # 프론트엔드 로직 (바코드 스캔 포함)
+data/
+  library.db        # SQLite 데이터베이스 (최초 실행 시 자동 생성)
+```
+
+## 기본 대출 기간
+
+기본 대출 기간은 14일이며, 대출 처리 시 화면에서 일수를 변경할 수 있습니다.

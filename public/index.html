@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>모임공간 도서관리시스템</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>📚 모임공간 도서관리시스템</h1>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="dashboard">대시보드</button>
+      <button class="tab-btn" data-tab="books">도서</button>
+      <button class="tab-btn" data-tab="loans">대출/반납</button>
+      <button class="tab-btn" data-tab="members">회원</button>
+    </nav>
+  </header>
+
+  <main id="app">
+    <!-- 대시보드 -->
+    <section id="tab-dashboard" class="tab-panel active">
+      <div class="stat-grid" id="stat-grid"></div>
+    </section>
+
+    <!-- 도서 -->
+    <section id="tab-books" class="tab-panel">
+      <div class="panel-toolbar">
+        <input type="search" id="book-search" placeholder="제목/저자/ISBN 검색" />
+        <select id="book-category-filter"><option value="">전체 분류</option></select>
+        <select id="book-status-filter">
+          <option value="">전체 상태</option>
+          <option value="available">대출 가능</option>
+          <option value="on_loan">대출 중</option>
+        </select>
+        <button id="open-add-book" class="btn-primary">+ 도서 등록</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr><th>표지</th><th>제목</th><th>저자</th><th>출판사</th><th>분류</th><th>ISBN</th><th>상태</th><th></th></tr>
+        </thead>
+        <tbody id="books-tbody"></tbody>
+      </table>
+    </section>
+
+    <!-- 대출/반납 -->
+    <section id="tab-loans" class="tab-panel">
+      <div class="panel-toolbar">
+        <button id="open-checkout" class="btn-primary">+ 새 대출</button>
+        <select id="loan-status-filter">
+          <option value="on_loan">대출 중</option>
+          <option value="overdue">연체</option>
+          <option value="returned">반납 완료</option>
+          <option value="">전체</option>
+        </select>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr><th>도서</th><th>회원</th><th>대출일</th><th>반납예정일</th><th>반납일</th><th>상태</th><th></th></tr>
+        </thead>
+        <tbody id="loans-tbody"></tbody>
+      </table>
+    </section>
+
+    <!-- 회원 -->
+    <section id="tab-members" class="tab-panel">
+      <div class="panel-toolbar">
+        <input type="search" id="member-search" placeholder="이름/연락처 검색" />
+        <button id="open-add-member" class="btn-primary">+ 회원 등록</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr><th>이름</th><th>연락처</th><th>메모</th><th>대출 중</th><th></th></tr>
+        </thead>
+        <tbody id="members-tbody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <!-- 도서 등록/수정 모달 -->
+  <div id="modal-book" class="modal">
+    <div class="modal-content">
+      <h2 id="book-modal-title">도서 등록</h2>
+      <div class="scan-row">
+        <input type="text" id="book-isbn" placeholder="ISBN 입력 또는 스캔" />
+        <button id="btn-lookup-isbn" type="button">조회</button>
+        <button id="btn-scan-barcode" type="button">📷 스캔</button>
+      </div>
+      <div id="scanner-wrap" class="scanner-wrap hidden">
+        <div id="scanner"></div>
+        <button id="btn-stop-scan" type="button">스캔 중지</button>
+      </div>
+      <form id="book-form">
+        <input type="hidden" id="book-id" />
+        <label>제목 *<input type="text" id="book-title" required /></label>
+        <label>저자<input type="text" id="book-author" /></label>
+        <label>출판사<input type="text" id="book-publisher" /></label>
+        <label>분류<input type="text" id="book-category" /></label>
+        <label>표지 URL<input type="text" id="book-cover" /></label>
+        <label>메모<textarea id="book-memo"></textarea></label>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" data-close-modal="modal-book">취소</button>
+          <button type="submit" class="btn-primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 회원 등록/수정 모달 -->
+  <div id="modal-member" class="modal">
+    <div class="modal-content">
+      <h2 id="member-modal-title">회원 등록</h2>
+      <form id="member-form">
+        <input type="hidden" id="member-id" />
+        <label>이름 *<input type="text" id="member-name" required /></label>
+        <label>연락처<input type="text" id="member-phone" /></label>
+        <label>메모<textarea id="member-memo"></textarea></label>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" data-close-modal="modal-member">취소</button>
+          <button type="submit" class="btn-primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 대출 처리 모달 -->
+  <div id="modal-checkout" class="modal">
+    <div class="modal-content">
+      <h2>새 대출</h2>
+      <form id="checkout-form">
+        <label>도서
+          <select id="checkout-book" required></select>
+        </label>
+        <label>회원
+          <select id="checkout-member" required></select>
+        </label>
+        <label>대출 기간(일)
+          <input type="number" id="checkout-days" value="14" min="1" />
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" data-close-modal="modal-checkout">취소</button>
+          <button type="submit" class="btn-primary">대출 처리</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
