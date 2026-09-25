@@ -173,7 +173,7 @@
 
     if (secOfDay < startSec) {
       return { key: 'before', phase: '시작 전', remain: startSec - secOfDay, total: null,
-               sub: `${START_HOUR}:00 첫 몰입 시작`, rule: '곧 리드스테이가 시작됩니다' };
+               sub: `${pad(START_HOUR)}:00 첫 몰입 시작`, rule: '곧 리드스테이가 시작됩니다' };
     }
     if (secOfDay >= endSec) {
       return { key: 'after', phase: '오늘의 리드스테이 종료', remain: null, total: null,
@@ -196,7 +196,10 @@
   }
 
   const pad = n => String(Math.floor(n)).padStart(2, '0');
-  const fmt = sec => `${pad(sec / 60)}:${pad(sec % 60)}`;
+  // 1시간 이상 남으면 H:MM:SS, 아니면 MM:SS
+  const fmt = sec => sec >= 3600
+    ? `${Math.floor(sec / 3600)}:${pad(sec % 3600 / 60)}:${pad(sec % 60)}`
+    : `${pad(sec / 60)}:${pad(sec % 60)}`;
 
   // ---- 종소리 (Web Audio로 합성, 외부 파일 없음) ----
   let ctx = null, muted = false;
@@ -232,7 +235,7 @@
   // 오디오 시계는 탭이 백그라운드여도 느려지지 않아서 종이 정확한 시각에 울린다.
   function playBell(seq, delaySec = 0) {
     if (!ctx || muted) return;
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
     let t = ctx.currentTime + Math.max(delaySec, 0) + 0.05;
     seq.forEach(n => {
       if (n) strike(NOTE[n], t);
@@ -318,6 +321,8 @@
 
     // 다음 종을 미리 예약 (전환 시각까지 LOOKAHEAD초 이내가 되면 한 번만)
     if (ctx && !muted) {
+      // 절전·장치 변경 등으로 오디오가 멈췄으면 다시 깨움
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
       const nx = nextTransition(d);
       const secOfDay = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000;
       const delay = nx.at - secOfDay;
