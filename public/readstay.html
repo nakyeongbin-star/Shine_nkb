@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>리드스테이 타이머</title>
+<style>
+  :root {
+    --bg: #0f1a17;
+    --fg: #eef3ef;
+    --muted: #8fa39a;
+    --accent: #6fcf97;
+    --ring-bg: rgba(255, 255, 255, 0.08);
+    --card: rgba(255, 255, 255, 0.05);
+  }
+  body.break { --bg: #221a10; --accent: #f2b35b; --muted: #b39d7f; }
+  body.idle  { --bg: #14161c; --accent: #8ea4d2; --muted: #8b90a0; }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3vh 16px 2vh;
+    transition: background 1.2s ease;
+    overflow: hidden;
+  }
+
+  header { text-align: center; }
+  .brand { font-size: clamp(14px, 2vw, 22px); letter-spacing: 0.4em; color: var(--muted); }
+  .clock { font-size: clamp(20px, 3vw, 36px); font-variant-numeric: tabular-nums; margin-top: 0.3em; color: var(--muted); }
+
+  main { display: flex; flex-direction: column; align-items: center; gap: 2vh; }
+  .ring-wrap { position: relative; width: min(62vh, 86vw); aspect-ratio: 1; }
+  .ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring-bg { stroke: var(--ring-bg); }
+  .ring-fg { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 0.3s linear, stroke 1.2s; }
+  .ring-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+  }
+  .phase { font-size: clamp(22px, 4.5vh, 48px); font-weight: 700; color: var(--accent); }
+  .remain { font-size: clamp(48px, min(15vh, 19vw), 180px); font-weight: 200; font-variant-numeric: tabular-nums; line-height: 1.05; }
+  .sub { font-size: clamp(14px, 2.4vh, 24px); color: var(--muted); margin-top: 0.4em; }
+
+  .rule {
+    font-size: clamp(16px, 2.8vh, 28px);
+    padding: 0.6em 1.4em;
+    border-radius: 999px;
+    background: var(--card);
+    text-align: center;
+    word-break: keep-all;
+  }
+
+  .timetable { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; max-width: 100%; }
+  .slot {
+    font-size: clamp(11px, 1.5vh, 15px);
+    padding: 0.45em 0.8em;
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+  .slot b { display: block; font-size: 1.1em; }
+  .slot.done { opacity: 0.35; }
+  .slot.now { background: var(--accent); color: var(--bg); }
+
+  .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 1.5vh; opacity: 0.25; transition: opacity 0.3s; }
+  .controls:hover, .controls:focus-within { opacity: 1; }
+  .controls button {
+    background: var(--card); color: var(--fg);
+    border: 1px solid var(--ring-bg); border-radius: 8px;
+    padding: 0.5em 1em; font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap;
+  }
+
+  #overlay {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.82);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; cursor: pointer; text-align: center; padding: 16px;
+  }
+  #overlay h1 { font-size: clamp(32px, 6vw, 64px); }
+  #overlay p { color: #bbb; font-size: clamp(15px, 2vw, 20px); line-height: 1.6; }
+  #overlay .go {
+    background: #6fcf97; color: #0f1a17; font-weight: 700;
+    padding: 0.8em 2em; border-radius: 999px; font-size: clamp(18px, 2.5vw, 24px);
+  }
+  body.ringing .ring-wrap { animation: pulse 1s ease-in-out 4; }
+  @keyframes pulse { 50% { transform: scale(1.03); } }
+</style>
+</head>
+<body class="idle">
+
+<header>
+  <div class="brand">READ · STAY</div>
+  <div class="clock" id="clock">--:--:--</div>
+</header>
+
+<main>
+  <div class="ring-wrap">
+    <svg viewBox="0 0 200 200">
+      <circle class="ring-bg" cx="100" cy="100" r="92" fill="none" stroke-width="6"/>
+      <circle class="ring-fg" id="ring" cx="100" cy="100" r="92" fill="none" stroke-width="6"
+              stroke-dasharray="578.05" stroke-dashoffset="0"/>
+    </svg>
+    <div class="ring-center">
+      <div class="phase" id="phase">-</div>
+      <div class="remain" id="remain">--:--</div>
+      <div class="sub" id="sub"></div>
+    </div>
+  </div>
+  <div class="rule" id="rule"></div>
+</main>
+
+<footer>
+  <div class="timetable" id="timetable"></div>
+  <div class="controls">
+    <button id="btnTestStart">🔔 시작종 듣기</button>
+    <button id="btnTestEnd">🔔 쉬는종 듣기</button>
+    <button id="btnMute">🔊 소리 켜짐</button>
+    <button id="btnFull">⛶ 전체화면</button>
+  </div>
+</footer>
+
+<div id="overlay">
+  <h1>📚 리드스테이</h1>
+  <p>매 정각 몰입 시작 · 50분 쉬는 시간<br>종소리를 울리려면 화면을 한 번 눌러주세요</p>
+  <div class="go">시작하기</div>
+</div>
+
+<script>
+(() => {
+  // ---- 설정 (URL 파라미터로 변경 가능: ?start=9&end=18&focus=50) ----
+  const params = new URLSearchParams(location.search);
+  const START_HOUR = Number(params.get('start') ?? 9);
+  const END_HOUR = Number(params.get('end') ?? 18);
+  const FOCUS_MIN = Number(params.get('focus') ?? 50);
+
+  // 테스트용: ?t=08:59:50 처럼 주면 그 시각부터 시계가 흐름
+  let offsetMs = 0;
+  if (params.get('t')) {
+    const [h, m, s = 0] = params.get('t').split(':').map(Number);
+    const target = new Date();
+    target.setHours(h, m, s, 0);
+    offsetMs = target - Date.now();
+  }
+  const now = () => new Date(Date.now() + offsetMs);
+
+  // ---- 교시 계산 ----
+  function getState(d) {
+    const h = d.getHours(), m = d.getMinutes(), s = d.getSeconds();
+    const secOfDay = h * 3600 + m * 60 + s + d.getMilliseconds() / 1000;
+    const startSec = START_HOUR * 3600, endSec = END_HOUR * 3600;
+
+    if (secOfDay < startSec) {
+      return { key: 'before', phase: '시작 전', remain: startSec - secOfDay, total: null,
+               sub: `${START_HOUR}:00 첫 몰입 시작`, rule: '곧 리드스테이가 시작됩니다' };
+    }
+    if (secOfDay >= endSec) {
+      return { key: 'after', phase: '오늘의 리드스테이 종료', remain: null, total: null,
+               sub: '함께 머물러 주셔서 고맙습니다', rule: '다음에 또 만나요 👋' };
+    }
+    const period = h - START_HOUR + 1;
+    const secInHour = m * 60 + s + d.getMilliseconds() / 1000;
+    const focusSec = FOCUS_MIN * 60;
+    if (secInHour < focusSec) {
+      return { key: `focus-${period}`, type: 'focus', period, phase: `${period}교시 몰입`,
+               remain: focusSec - secInHour, total: focusSec,
+               sub: `${pad(h)}:${pad(FOCUS_MIN)} 까지`,
+               rule: '🤫 말소리 없이 몰입 중 · 출입은 조용히 자유롭게' };
+    }
+    const last = h + 1 >= END_HOUR;
+    return { key: `break-${period}`, type: 'break', period, phase: '쉬는 시간',
+             remain: 3600 - secInHour, total: 3600 - focusSec,
+             sub: last ? `${pad(h + 1)}:00 종료` : `${pad(h + 1)}:00 ${period + 1}교시 시작`,
+             rule: '☕ 스트레칭 · 물 한 잔 · 대화는 공간 밖에서' };
+  }
+
+  const pad = n => String(Math.floor(n)).padStart(2, '0');
+  const fmt = sec => `${pad(sec / 60)}:${pad(sec % 60)}`;
+
+  // ---- 종소리 (Web Audio로 합성, 외부 파일 없음) ----
+  let ctx = null, muted = false;
+  const NOTE = { G4: 392.0, C5: 523.25, D5: 587.33, E5: 659.25 };
+  // 학교종 "딩동댕동" (웨스트민스터 차임)
+  const START_BELL = ['E5', 'C5', 'D5', 'G4', null, 'G4', 'D5', 'E5', 'C5'];
+  const BREAK_BELL = ['C5', 'E5', 'D5', 'G4', null, 'G4', 'D5', 'E5', 'C5'];
+  const END_BELL = ['E5', 'C5', 'D5', 'G4', null, 'G4', 'D5', 'E5', 'C5', null, 'C5'];
+
+  function strike(freq, t) {
+    const master = ctx.createGain();
+    master.connect(ctx.destination);
+    master.gain.setValueAtTime(0.0001, t);
+    master.gain.exponentialRampToValueAtTime(0.35, t + 0.01);
+    master.gain.exponentialRampToValueAtTime(0.0001, t + 2.8);
+    // 종 특유의 배음
+    [[1, 1], [2, 0.5], [2.76, 0.25], [5.4, 0.12]].forEach(([ratio, amp]) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq * ratio;
+      g.gain.value = amp;
+      osc.connect(g).connect(master);
+      osc.start(t);
+      osc.stop(t + 3);
+    });
+  }
+
+  function playBell(seq) {
+    if (!ctx || muted) return;
+    if (ctx.state === 'suspended') ctx.resume();
+    let t = ctx.currentTime + 0.05;
+    seq.forEach(n => {
+      if (n) strike(NOTE[n], t);
+      t += 0.75;
+    });
+    document.body.classList.add('ringing');
+    setTimeout(() => document.body.classList.remove('ringing'), 4000);
+  }
+
+  // ---- 화면 꺼짐 방지 ----
+  let wakeLock = null;
+  async function keepAwake() {
+    try { wakeLock = await navigator.wakeLock?.request('screen'); } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && wakeLock !== null) keepAwake();
+  });
+
+  // ---- 시간표 ----
+  const tt = document.getElementById('timetable');
+  for (let h = START_HOUR; h < END_HOUR; h++) {
+    const el = document.createElement('div');
+    el.className = 'slot';
+    el.dataset.period = h - START_HOUR + 1;
+    el.innerHTML = `<b>${h - START_HOUR + 1}교시</b>${h}:00–${h}:${pad(FOCUS_MIN)}`;
+    tt.appendChild(el);
+  }
+
+  // ---- 렌더 루프 ----
+  const $ = id => document.getElementById(id);
+  const CIRC = 2 * Math.PI * 92;
+  let prevKey = null;
+
+  function tick() {
+    const d = now();
+    const st = getState(d);
+    $('clock').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    $('phase').textContent = st.phase;
+    $('remain').textContent = st.remain == null ? '' : fmt(Math.ceil(st.remain));
+    $('sub').textContent = st.sub;
+    $('rule').textContent = st.rule;
+    document.body.classList.toggle('focus', st.type === 'focus');
+    document.body.classList.toggle('break', st.type === 'break');
+    document.body.classList.toggle('idle', !st.type);
+
+    const progress = st.total ? st.remain / st.total : (st.key === 'after' ? 0 : 1);
+    $('ring').style.strokeDashoffset = CIRC * (1 - progress);
+
+    document.querySelectorAll('.slot').forEach(el => {
+      const p = Number(el.dataset.period);
+      el.classList.toggle('now', st.period === p && st.type === 'focus');
+      el.classList.toggle('done', st.key === 'after' || (st.period && (p < st.period || (p === st.period && st.type === 'break'))));
+    });
+
+    document.title = st.remain == null ? '리드스테이' : `${fmt(Math.ceil(st.remain))} · ${st.phase}`;
+
+    // 상태가 바뀌는 순간 종 울림
+    if (prevKey !== null && st.key !== prevKey) {
+      if (st.type === 'focus') playBell(START_BELL);
+      else if (st.type === 'break') playBell(BREAK_BELL);
+      else if (st.key === 'after') playBell(END_BELL);
+    }
+    prevKey = st.key;
+  }
+
+  tick();
+  setInterval(tick, 250);
+
+  // ---- 컨트롤 ----
+  $('overlay').addEventListener('click', () => {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    $('overlay').remove();
+    keepAwake();
+  });
+  $('btnTestStart').onclick = () => playBell(START_BELL);
+  $('btnTestEnd').onclick = () => playBell(BREAK_BELL);
+  $('btnMute').onclick = e => {
+    muted = !muted;
+    e.target.textContent = muted ? '🔇 소리 꺼짐' : '🔊 소리 켜짐';
+  };
+  $('btnFull').onclick = () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen?.();
+  };
+})();
+</script>
+</body>
+</html>
