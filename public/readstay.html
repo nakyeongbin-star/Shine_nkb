@@ -311,7 +311,7 @@
     document.querySelectorAll('.slot').forEach(el => {
       const p = Number(el.dataset.period);
       el.classList.toggle('now', st.period === p && st.type === 'focus');
-      el.classList.toggle('done', st.key === 'after' || (st.period && (p < st.period || (p === st.period && st.type === 'break'))));
+      el.classList.toggle('done', st.key === 'after' || (!!st.period && (p < st.period || (p === st.period && st.type === 'break'))));
     });
 
     document.title = st.remain == null ? '리드스테이' : `${fmt(Math.ceil(st.remain))} · ${st.phase}`;
