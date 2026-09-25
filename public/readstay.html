@@ -206,9 +206,12 @@
   const BREAK_BELL = ['C5', 'E5', 'D5', 'G4', null, 'G4', 'D5', 'E5', 'C5'];
   const END_BELL = ['E5', 'C5', 'D5', 'G4', null, 'G4', 'D5', 'E5', 'C5', null, 'C5'];
 
+  let pending = [];  // 예약된 종소리 노드 (음소거 시 끊기 위해 보관)
+
   function strike(freq, t) {
     const master = ctx.createGain();
     master.connect(ctx.destination);
+    pending.push(master);
     master.gain.setValueAtTime(0.0001, t);
     master.gain.exponentialRampToValueAtTime(0.35, t + 0.01);
     master.gain.exponentialRampToValueAtTime(0.0001, t + 2.8);
@@ -225,16 +228,29 @@
     });
   }
 
-  function playBell(seq) {
+  // delaySec 뒤에 울리도록 오디오 시계에 미리 예약한다.
+  // 오디오 시계는 탭이 백그라운드여도 느려지지 않아서 종이 정확한 시각에 울린다.
+  function playBell(seq, delaySec = 0) {
     if (!ctx || muted) return;
     if (ctx.state === 'suspended') ctx.resume();
-    let t = ctx.currentTime + 0.05;
+    let t = ctx.currentTime + Math.max(delaySec, 0) + 0.05;
     seq.forEach(n => {
       if (n) strike(NOTE[n], t);
       t += 0.75;
     });
-    document.body.classList.add('ringing');
-    setTimeout(() => document.body.classList.remove('ringing'), 4000);
+    setTimeout(() => {
+      document.body.classList.add('ringing');
+      setTimeout(() => document.body.classList.remove('ringing'), 4000);
+    }, Math.max(delaySec, 0) * 1000);
+    // 다 울린 노드는 목록에서 정리
+    const mine = pending.slice(-seq.filter(Boolean).length);
+    setTimeout(() => { pending = pending.filter(g => !mine.includes(g)); }, (t + 3 - ctx.currentTime) * 1000);
+  }
+
+  function stopAllBells() {
+    pending.forEach(g => g.disconnect());
+    pending = [];
+    scheduledKey = null;
   }
 
   // ---- 화면 꺼짐 방지 ----
@@ -259,7 +275,23 @@
   // ---- 렌더 루프 ----
   const $ = id => document.getElementById(id);
   const CIRC = 2 * Math.PI * 92;
-  let prevKey = null;
+  let scheduledKey = null;
+  const LOOKAHEAD = 70;  // 초. 백그라운드 탭은 타이머가 최대 1분 늦게 돌 수 있어 넉넉히 미리 예약
+
+  // 다음 상태 전환 시각과 그때 울릴 종을 계산
+  function nextTransition(d) {
+    const secOfDay = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000;
+    const startSec = START_HOUR * 3600, endSec = END_HOUR * 3600;
+    if (secOfDay < startSec) return { at: startSec, key: `focus-1`, bell: START_BELL };
+    if (secOfDay >= endSec) return { at: 86400 + startSec, key: 'focus-1-next', bell: START_BELL };
+    const hourStart = d.getHours() * 3600;
+    const focusEnd = hourStart + FOCUS_MIN * 60;
+    const period = d.getHours() - START_HOUR + 1;
+    if (secOfDay < focusEnd) return { at: focusEnd, key: `break-${period}`, bell: BREAK_BELL };
+    const nextHour = hourStart + 3600;
+    if (nextHour >= endSec) return { at: nextHour, key: 'after', bell: END_BELL };
+    return { at: nextHour, key: `focus-${period + 1}`, bell: START_BELL };
+  }
 
   function tick() {
     const d = now();
@@ -284,13 +316,17 @@
 
     document.title = st.remain == null ? '리드스테이' : `${fmt(Math.ceil(st.remain))} · ${st.phase}`;
 
-    // 상태가 바뀌는 순간 종 울림
-    if (prevKey !== null && st.key !== prevKey) {
-      if (st.type === 'focus') playBell(START_BELL);
-      else if (st.type === 'break') playBell(BREAK_BELL);
-      else if (st.key === 'after') playBell(END_BELL);
+    // 다음 종을 미리 예약 (전환 시각까지 LOOKAHEAD초 이내가 되면 한 번만)
+    if (ctx && !muted) {
+      const nx = nextTransition(d);
+      const secOfDay = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000;
+      const delay = nx.at - secOfDay;
+      const key = `${d.toDateString()}-${nx.key}`;
+      if (delay <= LOOKAHEAD && scheduledKey !== key) {
+        playBell(nx.bell, delay);
+        scheduledKey = key;
+      }
     }
-    prevKey = st.key;
   }
 
   tick();
@@ -306,11 +342,12 @@
   $('btnTestEnd').onclick = () => playBell(BREAK_BELL);
   $('btnMute').onclick = e => {
     muted = !muted;
-    e.target.textContent = muted ? '🔇 소리 꺼짐' : '🔊 소리 켜짐';
+    if (muted) stopAllBells();
+    e.currentTarget.textContent = muted ? '🔇 소리 꺼짐' : '🔊 소리 켜짐';
   };
   $('btnFull').onclick = () => {
-    if (document.fullscreenElement) document.exitFullscreen();
-    else document.documentElement.requestFullscreen?.();
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else document.documentElement.requestFullscreen?.().catch(() => {});
   };
 })();
 </script>
