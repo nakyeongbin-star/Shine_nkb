@@ -54,6 +54,7 @@
   }
   .phase { font-size: 4.4vh; font-weight: 700; color: var(--accent); }
   .remain { font-size: 15vh; font-weight: 300; font-variant-numeric: tabular-nums; line-height: 1.05; }
+  .remain .unit { font-size: 0.4em; font-weight: 400; margin-left: 0.08em; color: var(--muted); }
   .sub { font-size: 2.4vh; color: var(--muted); margin-top: 0.4em; }
 
   .rule {
@@ -112,7 +113,7 @@
 
 <header>
   <div class="brand">READ · STAY</div>
-  <div class="clock" id="clock">--:--:--</div>
+  <div class="clock" id="clock">--:--</div>
 </header>
 
 <main>
@@ -124,7 +125,7 @@
     </svg>
     <div class="ring-center">
       <div class="phase" id="phase">-</div>
-      <div class="remain" id="remain">--:--</div>
+      <div class="remain" id="remain"></div>
       <div class="sub" id="sub"></div>
     </div>
   </div>
@@ -196,10 +197,20 @@
   }
 
   const pad = n => String(Math.floor(n)).padStart(2, '0');
-  // 1시간 이상 남으면 H:MM:SS, 아니면 MM:SS
-  const fmt = sec => sec >= 3600
-    ? `${Math.floor(sec / 3600)}:${pad(sec % 3600 / 60)}:${pad(sec % 60)}`
-    : `${pad(sec / 60)}:${pad(sec % 60)}`;
+  // 남은 시간을 차분하게 표시: 분 단위(1분에 한 번만 바뀜).
+  // 초는 쉬는 시간 마지막 1분에만 보여준다 (곧 시작한다는 준비 신호).
+  function remainParts(st) {
+    const sec = Math.ceil(st.remain);
+    if (st.type === 'break' && sec <= 60) return [[sec, '초']];
+    const min = Math.ceil(sec / 60);
+    if (min >= 60) {
+      const h = Math.floor(min / 60), m = min % 60;
+      return m ? [[h, '시간'], [m, '분']] : [[h, '시간']];
+    }
+    return [[min, '분']];
+  }
+  const remainText = st => remainParts(st).map(([n, u]) => n + u).join(' ');
+  const remainHtml = st => remainParts(st).map(([n, u]) => `${n}<span class="unit">${u}</span>`).join(' ');
 
   // ---- 종소리 (Web Audio로 합성, 외부 파일 없음) ----
   let ctx = null, muted = false;
@@ -299,9 +310,10 @@
   function tick() {
     const d = now();
     const st = getState(d);
-    $('clock').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    $('clock').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
     $('phase').textContent = st.phase;
-    $('remain').textContent = st.remain == null ? '' : fmt(Math.ceil(st.remain));
+    const html = st.remain == null ? '' : remainHtml(st);
+    if ($('remain').innerHTML !== html) $('remain').innerHTML = html;
     $('sub').textContent = st.sub;
     $('rule').textContent = st.rule;
     document.body.classList.toggle('focus', st.type === 'focus');
@@ -317,7 +329,7 @@
       el.classList.toggle('done', st.key === 'after' || (!!st.period && (p < st.period || (p === st.period && st.type === 'break'))));
     });
 
-    document.title = st.remain == null ? '리드스테이' : `${fmt(Math.ceil(st.remain))} · ${st.phase}`;
+    document.title = st.remain == null ? '리드스테이' : `${remainText(st)} · ${st.phase}`;
 
     // 다음 종을 미리 예약 (전환 시각까지 LOOKAHEAD초 이내가 되면 한 번만)
     if (ctx && !muted) {
