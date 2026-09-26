@@ -83,6 +83,7 @@
   .remain .unit { font-size: 0.4em; font-weight: 400; margin-left: 0.08em; color: var(--muted); }
   .remain .unit.left { font-size: 0.22em; margin-left: 0.4em; }
   .sub { font-size: 2.4vh; color: var(--muted); margin-top: 0.4em; }
+  .ring-center > * { max-width: 76%; word-break: keep-all; }
 
   .rule {
     font-size: 2.8vh;
@@ -309,7 +310,7 @@
         <div class="meals" id="cfgMeals"></div>
       </div>
       <button class="opt small" id="cfgAddMeal" type="button">+ 식사 시간 추가</button>
-      <p class="hint">날짜를 비워두면 매일 이 일정으로 동작해요. 식사 시간은 1시간 단위이고 그 시간엔 몰입·종이 쉬어요. 설정은 이 기기(브라우저)에 저장돼요.</p>
+      <p class="hint">날짜를 비워두면 타이머와 종이 멈춰요. 식사 시간은 1시간 단위이고 그 시간엔 몰입·종이 쉬어요. 설정은 이 기기(브라우저)에 저장돼요.</p>
       <button class="opt primary" id="cfgApply" type="button">적용</button>
       <p class="msg" id="cfgMsg" role="status"></p>
     </div>
@@ -358,8 +359,8 @@
   const dayKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const dateLabel = d => `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]})`;
   const parseDay = key => { const [y, m, dd] = key.split('-').map(Number); return new Date(y, m - 1, dd); };
-  // 행사 날짜가 정해져 있으면 오늘과 비교: -1 이전, 0 당일(또는 매일), 1 이후
-  const eventDayCompare = d => !cfg.date ? 0 : Math.sign(dayKey(d).localeCompare(cfg.date));
+  // 오늘을 행사 날짜와 비교: -1 이전, 0 당일, 1 이후, null 날짜 미설정(타이머 멈춤)
+  const eventDayCompare = d => !cfg.date ? null : Math.sign(dayKey(d).localeCompare(cfg.date));
 
   // ---- 하루 일정 ----
   // 몰입하는 시간대(시)와 순번. 식사 시간은 빠진다.
@@ -386,6 +387,10 @@
     const startSec = cfg.start * 3600, endSec = cfg.end * 3600;
 
     const cmp = eventDayCompare(d);
+    if (cmp === null) {
+      return { key: 'unset', phase: '날짜를 정해 주세요', remain: null, total: null,
+               sub: '⚙ 설정 → 행사 일정에서 날짜를 고르면 시작돼요', rule: '날짜가 없으면 타이머와 종이 쉬어요' };
+    }
     if (cmp < 0) {
       const days = Math.round((parseDay(cfg.date) - parseDay(dayKey(d))) / 86400000);
       return { key: 'notyet', phase: `리드스테이 D-${days}`, remain: null, total: null,
@@ -532,8 +537,9 @@
     const summary = document.getElementById('overlaySummary');
     if (summary) {
       const meals = [...cfg.meals].sort((a, b) => a.hour - b.hour).map(m => ` · ${m.hour}시 ${m.name}`).join('');
-      const when = cfg.date ? `${dateLabel(parseDay(cfg.date))} ` : '';
-      summary.textContent = `${when}${cfg.start}시~${cfg.end}시 · 매 정각 몰입 시작 · ${FOCUS_MIN}분 쉬는 시간${meals}`;
+      summary.textContent = cfg.date
+        ? `${dateLabel(parseDay(cfg.date))} ${cfg.start}시~${cfg.end}시 · 매 정각 몰입 시작 · ${FOCUS_MIN}분 쉬는 시간${meals}`
+        : '행사 날짜가 아직 없어요 · 시작한 뒤 ⚙ 설정에서 날짜를 정해 주세요';
     }
   }
   buildTimetable();
