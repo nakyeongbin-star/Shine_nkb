@@ -36,7 +36,7 @@
     align-items: center;
     justify-content: center;
     gap: calc(var(--s) * 4.5);
-    padding: calc(var(--s) * 2.5) 40px;
+    padding: calc(var(--s) * 2.5) calc(var(--s) * 3);
     transition: background 1.2s ease, color 1.2s ease;
     overflow: hidden;
   }
@@ -132,10 +132,12 @@
   /* ---- 좌우 안내 카드 ---- */
   .side {
     position: fixed; top: 50%; transform: translateY(-50%);
-    --side-w: calc(var(--s) * 30);
+    /* 가운데 덩어리(가장 넓은 안내 문구 기준 반폭 약 34 단위) 옆 빈 공간에서 여백을 뺀 폭, 최대 42 단위 */
+    --center-half: calc(var(--s) * 34);
+    --side-w: min(calc(50vw - var(--center-half) - var(--s) * 5), calc(var(--s) * 42));
     width: var(--side-w);
     /* 가운데 원 바깥 빈 공간의 한가운데에 놓는다 */
-    --gap-center: calc((50vw - var(--s) * 25) / 2);
+    --gap-center: calc((50vw - var(--center-half)) / 2);
     background: color-mix(in srgb, var(--card) 70%, transparent);
     border: 1px solid var(--line); border-radius: calc(var(--s) * 2);
     padding: calc(var(--s) * 2.6) calc(var(--s) * 2.4);
@@ -149,10 +151,10 @@
   body.break .side, body.meal .side { opacity: 1; }
   body.break .side-right { box-shadow: 0 1vh 4vh rgba(0, 0, 0, 0.08); }
   .side-title { font-size: 0.8em; font-weight: 700; letter-spacing: 0.14em; color: var(--muted); }
-  .side-left { background: var(--card); opacity: 0.95; gap: calc(var(--s) * 2); padding: calc(var(--s) * 2.6) calc(var(--s) * 2.4); --side-w: calc(var(--s) * 31); }
+  .side-left { background: var(--card); opacity: 0.95; gap: calc(var(--s) * 2); padding: calc(var(--s) * 2.6) calc(var(--s) * 2.6); }
   .info-title { font-size: calc(var(--s) * 3); font-weight: 800; color: var(--brand-green); letter-spacing: -0.01em; }
   .rules { list-style: none; display: flex; flex-direction: column; gap: calc(var(--s) * 1.4); }
-  .rules li { display: flex; align-items: center; gap: calc(var(--s) * 1.4); font-size: calc(var(--s) * 1.8); line-height: 1.4; word-break: keep-all; }
+  .rules li { display: flex; align-items: center; gap: calc(var(--s) * 1.4); font-size: calc(var(--s) * 1.9); line-height: 1.4; word-break: keep-all; }
   .rules .ico {
     flex: none; width: calc(var(--s) * 4.8); height: calc(var(--s) * 4.8); border-radius: 50%;
     background: var(--brand-tint); color: var(--brand-green); display: grid; place-items: center;
@@ -167,9 +169,16 @@
   .wifi-head svg { width: calc(var(--s) * 3); height: calc(var(--s) * 3); flex: none; }
   .wifi-head b { font-size: calc(var(--s) * 2.5); font-weight: 800; }
   .wifi-head .venue { margin-left: auto; font-size: calc(var(--s) * 1.5); color: var(--muted); font-weight: 600; }
-  .wifi-row { display: grid; grid-template-columns: calc(var(--s) * 7.6) 1fr; gap: calc(var(--s) * 0.7); font-size: calc(var(--s) * 1.6); align-items: stretch; }
-  .wifi-row .k { background: rgba(31, 95, 58, 0.08); border-radius: calc(var(--s) * 0.8); padding: 0.55em 0.7em; font-weight: 700; color: #33443a; white-space: nowrap; display: flex; align-items: center; }
-  .wifi-row .v { background: #fff; border-radius: calc(var(--s) * 0.8); padding: 0.55em 0.8em; font-weight: 700; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .wifi-body { display: flex; align-items: center; gap: calc(var(--s) * 1.4); }
+  .wifi-side { display: flex; flex-direction: column; gap: calc(var(--s) * 0.8); min-width: 0; }
+  .wifi-rows { display: flex; flex-direction: column; gap: calc(var(--s) * 0.7); }
+  .wifi-row { display: grid; grid-template-columns: auto 1fr; gap: calc(var(--s) * 0.7); font-size: calc(var(--s) * 1.7); }
+  .wifi-row .k { background: rgba(31, 95, 58, 0.08); border-radius: calc(var(--s) * 0.8); padding: 0.5em 0.7em; font-weight: 700; color: #33443a; white-space: nowrap; min-width: 5.2em; text-align: center; }
+  .wifi-row .v { background: #fff; border-radius: calc(var(--s) * 0.8); padding: 0.5em 0.8em; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .wifi-qr { flex: none; width: calc(var(--s) * 9); aspect-ratio: 1; background: #fff; border-radius: calc(var(--s) * 0.8); padding: calc(var(--s) * 0.6); }
+  .wifi-qr svg { width: 100%; height: 100%; display: block; }
+  .wifi-note { font-size: calc(var(--s) * 1.5); color: #4a5a52; line-height: 1.45; word-break: keep-all; white-space: pre-line; }
+  .wifi-qr-hint { font-size: calc(var(--s) * 1.45); color: var(--brand-green); font-weight: 700; line-height: 1.4; }
   .site-logo { height: calc(var(--s) * 3.4); width: auto; }
   .site-intro { white-space: pre-line; word-break: keep-all; }
   .qr { width: calc(var(--s) * 15); aspect-ratio: 1; background: #fff; border-radius: calc(var(--s) * 1); padding: calc(var(--s) * 0.8); }
@@ -180,15 +189,15 @@
   @media (max-aspect-ratio: 3/2) { .side { display: none; } }
 
   /* ---- 설정 ---- */
-  .top-actions { position: fixed; top: 20px; right: 24px; display: flex; gap: 4px; }
+  .top-actions { position: fixed; top: calc(var(--s) * 1.8); right: calc(var(--s) * 2.2); display: flex; gap: calc(var(--s) * 0.4); z-index: 5; }
   .icon-btn {
-    width: 44px; height: 44px; border-radius: 50%;
+    width: calc(var(--s) * 4.4); height: calc(var(--s) * 4.4); border-radius: 50%;
     border: none; background: transparent; color: var(--muted);
     cursor: pointer; opacity: 0.45; transition: opacity 0.2s, background 0.2s;
     display: grid; place-items: center;
   }
   .icon-btn:hover, .icon-btn:focus-visible { opacity: 1; background: var(--card); }
-  .icon-btn svg { width: 24px; height: 24px; }
+  .icon-btn svg { width: calc(var(--s) * 2.4); height: calc(var(--s) * 2.4); }
   .icon-btn .when-full { display: none; }
   :fullscreen .icon-btn .when-full { display: block; }
   :fullscreen .icon-btn .when-normal { display: none; }
@@ -224,7 +233,8 @@
   .volume input { flex: 1; accent-color: #1f7a4a; }
   .volume output { width: 3em; text-align: right; font-variant-numeric: tabular-nums; color: #6b8078; }
   .hint { font-size: 12px; color: #8a978f; line-height: 1.5; }
-  .panel { max-height: calc(100vh - 40px); overflow-y: auto; }
+  .panel { max-height: calc(100vh / var(--ui, 1) - 40px); overflow-y: auto; zoom: var(--ui, 1); }
+  #overlay > * { zoom: var(--ui, 1); }
   .field { display: flex; align-items: center; gap: 8px; font-size: 14px; }
   .field > .label { width: 3em; flex: none; color: #4a5a52; }
   .field.top { align-items: flex-start; }
@@ -242,6 +252,7 @@
   .venues { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
   .venue-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; padding: 10px; background: #f6f8f7; border-radius: 10px; }
   .venue-row .v-name { grid-column: 1 / 3; font-weight: 700; }
+  .venue-row .v-note { grid-column: 1 / 4; }
   .venue-row button { grid-column: 3; grid-row: 1; border: none; background: none; color: #8a978f; cursor: pointer; font: inherit; font-size: 13px; }
   .venue-row button:hover { color: #c8503c; }
   .panel input[type="date"], .panel select {
@@ -342,8 +353,17 @@
   <div class="wifi-box" id="sideWifi">
     <div class="wifi-inner">
       <div class="wifi-head" id="wifiHead"><b>Wi-Fi</b><span class="venue" id="wifiVenue"></span></div>
-      <div class="wifi-row"><span class="k">이름</span><span class="v" id="wifiName"></span></div>
-      <div class="wifi-row"><span class="k">비밀번호</span><span class="v" id="wifiPw"></span></div>
+      <div class="wifi-rows">
+        <div class="wifi-row"><span class="k">이름</span><span class="v" id="wifiName"></span></div>
+        <div class="wifi-row"><span class="k">비밀번호</span><span class="v" id="wifiPw"></span></div>
+      </div>
+      <div class="wifi-body">
+        <div class="wifi-qr" id="wifiQr" role="img" aria-label="Wi-Fi 연결 QR 코드"></div>
+        <div class="wifi-side">
+          <div class="wifi-qr-hint">카메라로 QR을 찍으면<br>바로 연결돼요</div>
+          <div class="wifi-note" id="wifiNote"></div>
+        </div>
+      </div>
     </div>
   </div>
 </aside>
@@ -807,6 +827,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }
   }
 
+  // 팝업·시작 화면 확대 비율: 1080p(단위 10.8px)를 1로 보고, 더 큰 화면에서만 키움
+  function updateUiScale() {
+    const unit = Math.min(innerHeight / 100, innerWidth * 0.0075);
+    document.documentElement.style.setProperty('--ui', Math.max(1, unit / 10.8).toFixed(3));
+  }
+  updateUiScale();
+  addEventListener('resize', updateUiScale);
+
   tick();
   setInterval(tick, 250);
 
@@ -956,6 +984,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   const saveSide = () => { try { localStorage.setItem(SIDE_KEY, JSON.stringify(side)); } catch (e) {} };
   const currentVenue = () => side.venues.find(v => v.id === side.left.venueId);
 
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];  // 한글 Wi-Fi 이름도 올바르게
   function qrSvg(text) {
     const q = qrcode(0, 'M');
     q.addData(text);
@@ -965,6 +994,22 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) path += `M${c} ${r}h1v1h-1z`;
     return `<svg viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges"><path d="${path}" fill="#19211a"/></svg>`;
   }
+  // Wi-Fi 이름·비밀번호가 칸보다 길면 글자 크기를 줄여 한 줄에 맞춘다 (최소 65%)
+  function fitWifiValues() {
+    document.querySelectorAll('.wifi-row .v').forEach(el => {
+      el.style.fontSize = '';
+      let scale = 1;
+      while (el.scrollWidth > el.clientWidth && scale > 0.65) {
+        scale -= 0.05;
+        el.style.fontSize = `${scale}em`;
+      }
+    });
+  }
+  addEventListener('resize', () => requestAnimationFrame(fitWifiValues));
+  const qrEscape = t => t.replace(/([\\;,:"])/g, '\\$1');
+  const wifiQrText = v => v.wifiPw
+    ? `WIFI:T:WPA;S:${qrEscape(v.wifiName)};P:${qrEscape(v.wifiPw)};;`
+    : `WIFI:T:nopass;S:${qrEscape(v.wifiName)};;`;
   const shortUrl = url => url.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
   function renderSide() {
@@ -976,6 +1021,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     $('wifiVenue').textContent = venue ? venue.name : '';
     $('wifiName').textContent = venue ? venue.wifiName : '';
     $('wifiPw').textContent = venue && venue.wifiPw ? venue.wifiPw : '없음';
+    $('wifiNote').textContent = venue && venue.wifiNote ? venue.wifiNote : '';
+    $('wifiNote').hidden = !(venue && venue.wifiNote);
+    requestAnimationFrame(fitWifiValues);
+    // 휴대폰 카메라로 찍으면 바로 연결되는 표준 Wi-Fi QR (WIFI:T:WPA;S:이름;P:비번;;)
+    try { $('wifiQr').innerHTML = venue && venue.wifiName ? qrSvg(wifiQrText(venue)) : ''; } catch (e) { $('wifiQr').innerHTML = ''; }
     const ul = $('sideRules');
     ul.innerHTML = '';
     side.left.rules.forEach(t => {
@@ -1001,10 +1051,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       <input type="text" class="v-name" placeholder="장소 이름" aria-label="장소 이름">
       <button type="button" aria-label="이 장소 삭제">삭제</button>
       <input type="text" class="v-wifi" placeholder="Wi-Fi 이름" aria-label="Wi-Fi 이름">
-      <input type="text" class="v-pw" placeholder="비밀번호" aria-label="Wi-Fi 비밀번호">`;
+      <input type="text" class="v-pw" placeholder="비밀번호" aria-label="Wi-Fi 비밀번호">
+      <input type="text" class="v-note" placeholder="Wi-Fi 설명 (예: 창가 쪽은 5G가 잘 잡혀요)" aria-label="Wi-Fi 설명">`;
     row.querySelector('.v-name').value = v.name;
     row.querySelector('.v-wifi').value = v.wifiName;
     row.querySelector('.v-pw').value = v.wifiPw;
+    row.querySelector('.v-note').value = v.wifiNote || '';
     row.querySelector('.v-name').addEventListener('input', refreshVenueSelect);
     row.querySelector('button').onclick = () => { row.remove(); refreshVenueSelect(); };
     return row;
@@ -1014,6 +1066,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     name: r.querySelector('.v-name').value.trim(),
     wifiName: r.querySelector('.v-wifi').value.trim(),
     wifiPw: r.querySelector('.v-pw').value.trim(),
+    wifiNote: r.querySelector('.v-note').value.trim(),
   }));
   // 편집 중인 목록에 맞춰 장소 선택 드롭다운을 다시 채움 (선택은 유지)
   function refreshVenueSelect() {
