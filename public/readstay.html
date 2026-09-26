@@ -39,20 +39,23 @@
 
   header { display: flex; flex-direction: column; align-items: center; gap: 0.6vh; }
   .brand { display: flex; align-items: center; gap: 1.2vh; }
-  .brand svg { width: 6vh; height: 6vh; flex: none; }
+  .brand svg { width: 8.4vh; height: 5.5vh; flex: none; }
   .brand-text {
     font-family: "Montserrat", "Pretendard", "Malgun Gothic", sans-serif;
     font-size: 3vh; font-weight: 700; letter-spacing: 0.32em; color: var(--ink);
   }
   .clock {
-    display: flex; align-items: center; gap: 0.6em;
-    font-size: 3.2vh; font-variant-numeric: tabular-nums; color: var(--fg);
+    display: flex; align-items: center; gap: 0.5em;
+    font-size: 3.2vh; line-height: 1; font-variant-numeric: tabular-nums; color: var(--fg);
   }
   .clock-label {
-    font-size: 0.6em; font-weight: 700; letter-spacing: 0.08em;
-    color: var(--accent); border: 1.5px solid currentColor; border-radius: 999px;
-    padding: 0.15em 0.7em;
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 1.35em; padding: 0 0.6em;
+    font-family: "Montserrat", "Pretendard", "Malgun Gothic", sans-serif;
+    font-size: 0.55em; font-weight: 700; letter-spacing: 0.12em; line-height: 1;
+    color: #fff; background: var(--accent); border-radius: 999px;
   }
+  .clock-time { display: inline-flex; align-items: center; height: 1em; }
 
   main { display: flex; flex-direction: column; align-items: center; gap: 3vh; }
   .ring-wrap {
@@ -63,7 +66,8 @@
   }
   .ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
   .ring-bg { stroke: var(--ring-bg); }
-  .ticks line { stroke: var(--line); stroke-width: 1.5; }
+  .ticks line { stroke: var(--muted); stroke-width: 1.2; stroke-linecap: round; opacity: 0.35; }
+  .ticks line.major { stroke-width: 2; opacity: 0.6; }
   .ring-fg { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 0.3s linear, stroke 1.2s, opacity 0.3s; }
   .ring-center {
     position: absolute; inset: 0;
@@ -156,7 +160,7 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 24px; cursor: pointer; text-align: center;
   }
-  #overlay svg { width: 120px; height: 120px; }
+  #overlay svg { width: 182px; height: 120px; }
   #overlay h1 { font-size: 56px; }
   #overlay p { color: #6b8078; font-size: 20px; line-height: 1.6; }
   #overlay .go {
@@ -171,14 +175,21 @@
 </head>
 <body class="idle">
 
-<!-- Read365 로고 (펼친 책 + Read / 365) -->
+<!-- Read365 로고 (벡터, 배경 투명) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="logo" viewBox="0 0 100 100">
-    <circle cx="50" cy="50" r="50" fill="#f4a08f"/>
-    <text x="50" y="35" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-weight="600" font-size="15" fill="#222">Read</text>
-    <path d="M50 46 C42 41 30 41 21 44 L21 72 C30 69 42 69 50 74 C58 69 70 69 79 72 L79 44 C70 41 58 41 50 46 Z M50 69 L50 74"
-          fill="none" stroke="#222" stroke-width="2.6" stroke-linejoin="round"/>
-    <text x="50" y="65" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="15" fill="#222">365</text>
+  <symbol id="logo" viewBox="43 111 334 220">
+    <g transform="rotate(-6 130 222)">
+      <path d="M94 130 H203 V314 H94 A38 38 0 0 1 56 276 V168 A38 38 0 0 1 94 130 Z" fill="#34593a"/>
+      <text x="123" y="260" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="100" fill="#fff">R</text>
+    </g>
+    <g transform="rotate(5 287 222)">
+      <path d="M219 130 H318 A38 38 0 0 1 356 168 V276 A38 38 0 0 1 318 314 H219 Z" fill="#1c221b"/>
+      <g stroke="#fff" stroke-width="17" stroke-linecap="round">
+        <line x1="258" y1="180" x2="284" y2="180"/>
+        <line x1="255" y1="219" x2="325" y2="219"/>
+        <line x1="253" y1="258" x2="303" y2="258"/>
+      </g>
+    </g>
   </symbol>
 </svg>
 
@@ -187,7 +198,7 @@
     <svg role="img" aria-label="Read365"><use href="#logo"/></svg>
     <span class="brand-text">READ · STAY</span>
   </div>
-  <div class="clock" aria-label="현재 시각"><span class="clock-label">지금</span><span id="clock">--:--</span></div>
+  <div class="clock" aria-label="현재 시각"><span class="clock-label">NOW</span><span class="clock-time" id="clock">--:--</span></div>
 </header>
 
 <div class="top-actions">
@@ -211,10 +222,7 @@
   <div class="ring-wrap">
     <svg viewBox="0 0 200 200">
       <circle class="ring-bg" cx="100" cy="100" r="92" fill="none" stroke-width="6"/>
-      <g class="ticks">
-        <line x1="100" y1="2" x2="100" y2="14"/><line x1="198" y1="100" x2="186" y2="100"/>
-        <line x1="100" y1="198" x2="100" y2="186"/><line x1="2" y1="100" x2="14" y2="100"/>
-      </g>
+      <g class="ticks" id="ticks"></g>
       <circle class="ring-fg" id="ring" cx="100" cy="100" r="92" fill="none" stroke-width="6"
               stroke-dasharray="578.05" stroke-dashoffset="578.05"/>
     </svg>
@@ -458,6 +466,28 @@
     return { at: (h + 1) * 3600, key: next.key, bell };
   }
 
+  // 원 둘레 눈금: 몰입·점심은 5분마다, 쉬는 시간(10분)은 1분마다. 시작점(12시 방향)만 굵게.
+  let tickTotal = null;
+  function drawTicks(total) {
+    if (total === tickTotal) return;
+    tickTotal = total;
+    const g = $('ticks');
+    g.innerHTML = '';
+    if (!total) return;
+    const step = total > 900 ? 300 : 60;
+    const n = Math.round(total / step);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * 2 * Math.PI;
+      const major = i === 0;
+      const r1 = major ? 76 : 79, r2 = 84;
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', 100 + r1 * Math.cos(a)); line.setAttribute('y1', 100 + r1 * Math.sin(a));
+      line.setAttribute('x2', 100 + r2 * Math.cos(a)); line.setAttribute('y2', 100 + r2 * Math.sin(a));
+      if (major) line.classList.add('major');
+      g.appendChild(line);
+    }
+  }
+
   function tick() {
     const d = now();
     const st = getState(d);
@@ -475,6 +505,7 @@
     const elapsed = st.total ? 1 - st.remain / st.total : (st.key === 'after' ? 1 : 0);
     $('ring').style.strokeDashoffset = CIRC * (1 - elapsed);
     $('ring').style.opacity = elapsed > 0.002 ? 1 : 0;
+    drawTicks(st.total);
 
     document.querySelectorAll('.slot').forEach(el => {
       const h = Number(el.dataset.hour);

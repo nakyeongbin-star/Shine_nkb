@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="43 111 334 220">
+  <g transform="rotate(-6 130 222)">
+    <path d="M94 130 H203 V314 H94 A38 38 0 0 1 56 276 V168 A38 38 0 0 1 94 130 Z" fill="#34593a"/>
+    <text x="123" y="260" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="100" fill="#fff">R</text>
+  </g>
+  <g transform="rotate(5 287 222)">
+    <path d="M219 130 H318 A38 38 0 0 1 356 168 V276 A38 38 0 0 1 318 314 H219 Z" fill="#1c221b"/>
+    <g stroke="#fff" stroke-width="17" stroke-linecap="round">
+      <line x1="258" y1="180" x2="284" y2="182"/>
+      <line x1="255" y1="219" x2="325" y2="221"/>
+      <line x1="253" y1="258" x2="303" y2="260"/>
+    </g>
+  </g>
+</svg>
