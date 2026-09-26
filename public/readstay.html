@@ -44,7 +44,15 @@
     font-family: "Montserrat", "Pretendard", "Malgun Gothic", sans-serif;
     font-size: 3vh; font-weight: 700; letter-spacing: 0.32em; color: var(--ink);
   }
-  .clock { font-size: 3.4vh; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .clock {
+    display: flex; align-items: center; gap: 0.6em;
+    font-size: 3.2vh; font-variant-numeric: tabular-nums; color: var(--fg);
+  }
+  .clock-label {
+    font-size: 0.6em; font-weight: 700; letter-spacing: 0.08em;
+    color: var(--accent); border: 1.5px solid currentColor; border-radius: 999px;
+    padding: 0.15em 0.7em;
+  }
 
   main { display: flex; flex-direction: column; align-items: center; gap: 3vh; }
   .ring-wrap {
@@ -55,7 +63,8 @@
   }
   .ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
   .ring-bg { stroke: var(--ring-bg); }
-  .ring-fg { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 0.3s linear, stroke 1.2s; }
+  .ticks line { stroke: var(--line); stroke-width: 1.5; }
+  .ring-fg { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 0.3s linear, stroke 1.2s, opacity 0.3s; }
   .ring-center {
     position: absolute; inset: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -64,6 +73,7 @@
   .phase { font-size: 4.4vh; font-weight: 700; color: var(--accent); }
   .remain { font-size: 15vh; font-weight: 300; font-variant-numeric: tabular-nums; line-height: 1.05; }
   .remain .unit { font-size: 0.4em; font-weight: 400; margin-left: 0.08em; color: var(--muted); }
+  .remain .unit.left { font-size: 0.22em; margin-left: 0.4em; }
   .sub { font-size: 2.4vh; color: var(--muted); margin-top: 0.4em; }
 
   .rule {
@@ -93,15 +103,18 @@
   .slot.now b { color: #fff; }
 
   /* ---- 설정 ---- */
-  .gear {
-    position: fixed; top: 20px; right: 24px;
+  .top-actions { position: fixed; top: 20px; right: 24px; display: flex; gap: 4px; }
+  .icon-btn {
     width: 44px; height: 44px; border-radius: 50%;
     border: none; background: transparent; color: var(--muted);
     cursor: pointer; opacity: 0.45; transition: opacity 0.2s, background 0.2s;
     display: grid; place-items: center;
   }
-  .gear:hover, .gear:focus-visible { opacity: 1; background: var(--card); }
-  .gear svg { width: 24px; height: 24px; }
+  .icon-btn:hover, .icon-btn:focus-visible { opacity: 1; background: var(--card); }
+  .icon-btn svg { width: 24px; height: 24px; }
+  .icon-btn .when-full { display: none; }
+  :fullscreen .icon-btn .when-full { display: block; }
+  :fullscreen .icon-btn .when-normal { display: none; }
 
   .modal {
     position: fixed; inset: 0; z-index: 10;
@@ -174,22 +187,36 @@
     <svg role="img" aria-label="Read365"><use href="#logo"/></svg>
     <span class="brand-text">READ · STAY</span>
   </div>
-  <div class="clock" id="clock">--:--</div>
+  <div class="clock" aria-label="현재 시각"><span class="clock-label">지금</span><span id="clock">--:--</span></div>
 </header>
 
-<button class="gear" id="btnSettings" aria-label="설정" title="설정">
+<div class="top-actions">
+<button class="icon-btn" id="btnFull" aria-label="전체화면" title="전체화면">
+  <svg class="when-normal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
+  </svg>
+  <svg class="when-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>
+  </svg>
+</button>
+<button class="icon-btn" id="btnSettings" aria-label="설정" title="설정">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="12" cy="12" r="3"/>
     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
   </svg>
 </button>
+</div>
 
 <main>
   <div class="ring-wrap">
     <svg viewBox="0 0 200 200">
       <circle class="ring-bg" cx="100" cy="100" r="92" fill="none" stroke-width="6"/>
+      <g class="ticks">
+        <line x1="100" y1="2" x2="100" y2="14"/><line x1="198" y1="100" x2="186" y2="100"/>
+        <line x1="100" y1="198" x2="100" y2="186"/><line x1="2" y1="100" x2="14" y2="100"/>
+      </g>
       <circle class="ring-fg" id="ring" cx="100" cy="100" r="92" fill="none" stroke-width="6"
-              stroke-dasharray="578.05" stroke-dashoffset="0"/>
+              stroke-dasharray="578.05" stroke-dashoffset="578.05"/>
     </svg>
     <div class="ring-center">
       <div class="phase" id="phase">-</div>
@@ -225,10 +252,6 @@
         <output id="volumeOut">70%</output>
       </div>
       <button class="opt" id="btnMute">🔊 종소리 켜짐</button>
-    </div>
-    <div class="group">
-      <div class="group-label">화면</div>
-      <button class="opt" id="btnFull">⛶ 전체화면</button>
     </div>
     <p class="hint">종소리를 끄면 정각·50분 종도 울리지 않아요. 행사 중에는 켜 두세요.</p>
   </div>
@@ -306,7 +329,7 @@
       return { key: `focus-${h}`, type: 'focus', hour: h, phase: `${sessionName(n)} 몰입`,
                remain: focusSec - secInHour, total: focusSec,
                sub: `${pad(h)}:${pad(FOCUS_MIN)} 까지`,
-               rule: '🤫 말소리 없이 몰입 중 · 출입은 조용히 자유롭게' };
+               rule: '🤫 대화 없이 몰입 중 · 출입은 조용히 자유롭게' };
     }
     return { key: `break-${h}`, type: 'break', hour: h, phase: '쉬는 시간',
              remain: 3600 - secInHour, total: 3600 - focusSec,
@@ -327,7 +350,8 @@
     return [[min, '분']];
   }
   const remainText = st => remainParts(st).map(([n, u]) => n + u).join(' ');
-  const remainHtml = st => remainParts(st).map(([n, u]) => `${n}<span class="unit">${u}</span>`).join(' ');
+  const remainHtml = st => remainParts(st).map(([n, u]) => `${n}<span class="unit">${u}</span>`).join(' ')
+    + '<span class="unit left">남음</span>';
 
   // ---- 종소리 (Web Audio로 합성, 외부 파일 없음) ----
   let ctx = null, muted = false, volume = 0.7;
@@ -437,7 +461,8 @@
   function tick() {
     const d = now();
     const st = getState(d);
-    $('clock').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const hh = d.getHours();
+    $('clock').textContent = `${hh < 12 ? '오전' : '오후'} ${hh % 12 || 12}:${pad(d.getMinutes())}`;
     $('phase').textContent = st.phase;
     const html = st.remain == null ? '' : remainHtml(st);
     if ($('remain').innerHTML !== html) $('remain').innerHTML = html;
@@ -446,8 +471,10 @@
     ['focus', 'break', 'lunch'].forEach(c => document.body.classList.toggle(c, st.type === c));
     document.body.classList.toggle('idle', !st.type);
 
-    const progress = st.total ? st.remain / st.total : (st.key === 'after' ? 0 : 1);
-    $('ring').style.strokeDashoffset = CIRC * (1 - progress);
+    // 지난 시간만큼 12시 방향에서 시계방향으로 채워짐
+    const elapsed = st.total ? 1 - st.remain / st.total : (st.key === 'after' ? 1 : 0);
+    $('ring').style.strokeDashoffset = CIRC * (1 - elapsed);
+    $('ring').style.opacity = elapsed > 0.002 ? 1 : 0;
 
     document.querySelectorAll('.slot').forEach(el => {
       const h = Number(el.dataset.hour);
@@ -513,6 +540,10 @@
     e.currentTarget.textContent = muted ? '🔇 종소리 꺼짐' : '🔊 종소리 켜짐';
     e.currentTarget.classList.toggle('off', muted);
   };
+  document.addEventListener('fullscreenchange', () => {
+    const full = !!document.fullscreenElement;
+    $('btnFull').title = $('btnFull').ariaLabel = full ? '전체화면 끄기' : '전체화면';
+  });
   $('btnFull').onclick = () => {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     else document.documentElement.requestFullscreen?.().catch(() => {});
