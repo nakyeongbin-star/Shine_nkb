@@ -19,7 +19,7 @@
     --ink: #222222;
   }
   body.break { --bg: #fdf5e9; --fg: #3a2c1a; --muted: #8f7658; --accent: #e08a1e; --ring-bg: rgba(224, 138, 30, 0.14); --line: rgba(58, 44, 26, 0.08); }
-  body.lunch { --bg: #fdf0ec; --fg: #3b2420; --muted: #97716a; --accent: #e0705c; --ring-bg: rgba(224, 112, 92, 0.14); --line: rgba(59, 36, 32, 0.08); }
+  body.meal { --bg: #fdf0ec; --fg: #3b2420; --muted: #97716a; --accent: #e0705c; --ring-bg: rgba(224, 112, 92, 0.14); --line: rgba(59, 36, 32, 0.08); }
   body.idle  { --bg: #f2f4f9; --fg: #232838; --muted: #737a90; --accent: #5669b0; --ring-bg: rgba(86, 105, 176, 0.12); --line: rgba(35, 40, 56, 0.08); }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -70,7 +70,7 @@
   .arc.track { opacity: 0.16; }
   .arc.c-focus { stroke: #2e9d63; }
   .arc.c-break { stroke: #e08a1e; }
-  .arc.c-lunch { stroke: #e0705c; }
+  .arc.c-meal { stroke: #e0705c; }
   .ticks line { stroke: var(--muted); stroke-width: 1.2; stroke-linecap: round; opacity: 0.35; }
   .ticks line.major { stroke-width: 2; opacity: 0.6; }
   .ring-center {
@@ -105,7 +105,7 @@
     text-align: center;
   }
   .slot b { display: block; font-size: 1.1em; color: var(--fg); }
-  .slot.lunch { background: transparent; border-style: dashed; }
+  .slot.meal { background: transparent; border-style: dashed; }
   .slot.done { opacity: 0.4; }
   .slot.now { background: var(--accent); border-color: var(--accent); border-style: solid; color: #fff; }
   .slot.now b { color: #fff; }
@@ -155,6 +155,30 @@
   .volume input { flex: 1; accent-color: #2e9d63; }
   .volume output { width: 3em; text-align: right; font-variant-numeric: tabular-nums; color: #6b8078; }
   .hint { font-size: 12px; color: #8a978f; line-height: 1.5; }
+  .panel { max-height: calc(100vh - 40px); overflow-y: auto; }
+  .field { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .field > .label { width: 3em; flex: none; color: #4a5a52; }
+  .field.top { align-items: flex-start; }
+  .field.top > .label { padding-top: 8px; }
+  .panel input[type="date"], .panel select {
+    font: inherit; font-size: 14px; color: #1f2d26;
+    border: 1px solid #d9e2dc; border-radius: 8px; padding: 6px 8px; background: #fff;
+  }
+  .panel input[type="date"] { flex: 1; }
+  .meals { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .meal-row { display: flex; align-items: center; gap: 6px; }
+  .meal-row .until { color: #8a978f; font-variant-numeric: tabular-nums; }
+  .meal-row button, .link {
+    border: none; background: none; color: #8a978f; cursor: pointer; font: inherit; font-size: 13px; padding: 4px 6px;
+  }
+  .meal-row button:hover, .link:hover { color: #1f2d26; }
+  .meals .empty { color: #8a978f; font-size: 13px; padding-top: 7px; }
+  .panel button.opt.primary { background: #2e9d63; border-color: #2e9d63; color: #fff; font-weight: 700; }
+  .panel button.opt.primary:hover { background: #268454; }
+  .panel button.opt.small { padding: 6px 10px; font-size: 13px; align-self: flex-start; }
+  .msg { font-size: 13px; min-height: 1.2em; }
+  .msg.ok { color: #2e9d63; }
+  .msg.err { color: #c8503c; }
 
   #overlay {
     position: fixed; inset: 0; z-index: 20;
@@ -267,24 +291,52 @@
       <button class="opt" id="btnMute">🔊 종소리 켜짐</button>
     </div>
     <p class="hint">종소리를 끄면 정각·50분 종도 울리지 않아요. 행사 중에는 켜 두세요.</p>
+    <div class="group">
+      <div class="group-label">행사 일정</div>
+      <div class="field">
+        <span class="label">날짜</span>
+        <input type="date" id="cfgDate">
+        <button class="link" id="cfgDateClear" type="button">지우기</button>
+      </div>
+      <div class="field">
+        <span class="label">시간</span>
+        <select id="cfgStart" aria-label="시작 시각"></select>
+        <span>~</span>
+        <select id="cfgEnd" aria-label="종료 시각"></select>
+      </div>
+      <div class="field top">
+        <span class="label">식사</span>
+        <div class="meals" id="cfgMeals"></div>
+      </div>
+      <button class="opt small" id="cfgAddMeal" type="button">+ 식사 시간 추가</button>
+      <p class="hint">날짜를 비워두면 매일 이 일정으로 동작해요. 식사 시간은 1시간 단위이고 그 시간엔 몰입·종이 쉬어요. 설정은 이 기기(브라우저)에 저장돼요.</p>
+      <button class="opt primary" id="cfgApply" type="button">적용</button>
+      <p class="msg" id="cfgMsg" role="status"></p>
+    </div>
   </div>
 </div>
 
 <div id="overlay">
   <svg role="img" aria-label="Read365"><use href="#logo"/></svg>
   <h1>리드스테이</h1>
-  <p>매 정각 몰입 시작 · 50분 쉬는 시간 · 12시 점심<br>종소리를 울리려면 화면을 한 번 눌러주세요</p>
+  <p><span id="overlaySummary">매 정각 몰입 시작 · 50분 쉬는 시간</span><br>종소리를 울리려면 화면을 한 번 눌러주세요</p>
   <div class="go">시작하기</div>
 </div>
 
 <script>
 (() => {
-  // ---- 설정 (URL 파라미터로 변경 가능: ?start=9&end=18&focus=50&lunch=12, lunch=off 로 점심 없음) ----
   const params = new URLSearchParams(location.search);
-  const START_HOUR = Number(params.get('start') ?? 9);
-  const END_HOUR = Number(params.get('end') ?? 18);
   const FOCUS_MIN = Number(params.get('focus') ?? 50);
-  const LUNCH_HOUR = params.get('lunch') === 'off' ? -1 : Number(params.get('lunch') ?? 12);
+
+  // ---- 행사 일정 (설정 팝업에서 바꾸고, 이 브라우저에 저장) ----
+  // date: 'YYYY-MM-DD' 또는 ''(매일), start/end: 시(정수), meals: [{ hour, name }]
+  const DEFAULT_CFG = { date: '', start: 9, end: 18, meals: [{ hour: 12, name: '점심' }] };
+  const CFG_KEY = 'readstay-schedule';
+  let cfg = DEFAULT_CFG;
+  try {
+    const saved = JSON.parse(localStorage.getItem(CFG_KEY));
+    if (saved && Number.isInteger(saved.start) && Number.isInteger(saved.end) && Array.isArray(saved.meals)) cfg = saved;
+  } catch (e) {}
 
   // 몰입 시간 이름. 바꾸려면 여기만 고치면 됨 (예: n => `${n}번째 스테이`)
   const sessionName = n => `챕터 ${n}`;
@@ -302,27 +354,50 @@
   const pad = n => String(Math.floor(n)).padStart(2, '0');
   const secOfDay = d => d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000;
 
+  const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+  const dayKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const dateLabel = d => `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]})`;
+  const parseDay = key => { const [y, m, dd] = key.split('-').map(Number); return new Date(y, m - 1, dd); };
+  // 행사 날짜가 정해져 있으면 오늘과 비교: -1 이전, 0 당일(또는 매일), 1 이후
+  const eventDayCompare = d => !cfg.date ? 0 : Math.sign(dayKey(d).localeCompare(cfg.date));
+
   // ---- 하루 일정 ----
-  // 몰입하는 시간대(시)와 순번. 점심 시간은 빠진다.
-  const sessionHours = [];
-  for (let h = START_HOUR; h < END_HOUR; h++) if (h !== LUNCH_HOUR) sessionHours.push(h);
+  // 몰입하는 시간대(시)와 순번. 식사 시간은 빠진다.
+  let sessionHours = [];
+  const mealAt = h => cfg.meals.find(m => m.hour === h);
+  function computeSessions() {
+    sessionHours = [];
+    for (let h = cfg.start; h < cfg.end; h++) if (!mealAt(h)) sessionHours.push(h);
+  }
+  computeSessions();
   const sessionNo = h => sessionHours.indexOf(h) + 1;
 
   // 어떤 시각(시)이 시작될 때 무엇이 오는지
   function whatStartsAt(h) {
-    if (h >= END_HOUR) return { label: '종료', key: 'after' };
-    if (h === LUNCH_HOUR) return { label: '점심시간', key: 'lunch' };
+    if (h >= cfg.end) return { label: '종료', key: 'after' };
+    const meal = mealAt(h);
+    if (meal) return { label: `${meal.name}시간`, key: `meal-${h}` };
     return { label: `${sessionName(sessionNo(h))} 시작`, key: `focus-${h}` };
   }
 
   function getState(d) {
     const h = d.getHours();
     const sec = secOfDay(d);
-    const startSec = START_HOUR * 3600, endSec = END_HOUR * 3600;
+    const startSec = cfg.start * 3600, endSec = cfg.end * 3600;
 
+    const cmp = eventDayCompare(d);
+    if (cmp < 0) {
+      const days = Math.round((parseDay(cfg.date) - parseDay(dayKey(d))) / 86400000);
+      return { key: 'notyet', phase: `리드스테이 D-${days}`, remain: null, total: null,
+               sub: `${dateLabel(parseDay(cfg.date))} ${pad(cfg.start)}:00 시작`, rule: '행사 당일에 타이머가 시작됩니다' };
+    }
+    if (cmp > 0) {
+      return { key: 'after', phase: '리드스테이 종료', remain: null, total: null,
+               sub: `${dateLabel(parseDay(cfg.date))} 행사가 끝났어요`, rule: '함께해 주셔서 고맙습니다 👋' };
+    }
     if (sec < startSec) {
       return { key: 'before', phase: '시작 전', remain: startSec - sec, total: null,
-               sub: `${pad(START_HOUR)}:00 ${sessionName(1)} 시작`, rule: '곧 리드스테이가 시작됩니다' };
+               sub: `${pad(cfg.start)}:00 ${sessionName(1)} 시작`, rule: '곧 리드스테이가 시작됩니다' };
     }
     if (sec >= endSec) {
       return { key: 'after', phase: '오늘의 리드스테이 종료', remain: null, total: null,
@@ -330,8 +405,9 @@
     }
     const secInHour = sec - h * 3600;
     const next = whatStartsAt(h + 1);
-    if (h === LUNCH_HOUR) {
-      return { key: 'lunch', type: 'lunch', hour: h, phase: '점심시간',
+    const meal = mealAt(h);
+    if (meal) {
+      return { key: `meal-${h}`, type: 'meal', hour: h, phase: `${meal.name}시간`,
                remain: 3600 - secInHour, total: 3600,
                sub: `${pad(h + 1)}:00 ${next.label}`,
                rule: '🍽️ 맛있게 드시고 오세요 · 짐은 두고 가셔도 돼요' };
@@ -437,19 +513,30 @@
   });
 
   // ---- 시간표 ----
-  const tt = document.getElementById('timetable');
-  for (let h = START_HOUR; h < END_HOUR; h++) {
-    const el = document.createElement('div');
-    el.className = 'slot';
-    el.dataset.hour = h;
-    if (h === LUNCH_HOUR) {
-      el.classList.add('lunch');
-      el.innerHTML = `<b>점심</b>${pad(h)}:00–${pad(h + 1)}:00`;
-    } else {
-      el.innerHTML = `<b>${sessionName(sessionNo(h))}</b>${pad(h)}:00–${pad(h)}:${pad(FOCUS_MIN)}`;
+  function buildTimetable() {
+    const tt = document.getElementById('timetable');
+    tt.innerHTML = '';
+    for (let h = cfg.start; h < cfg.end; h++) {
+      const el = document.createElement('div');
+      el.className = 'slot';
+      el.dataset.hour = h;
+      const meal = mealAt(h);
+      if (meal) {
+        el.classList.add('meal');
+        el.innerHTML = `<b>${meal.name}</b>${pad(h)}:00–${pad(h + 1)}:00`;
+      } else {
+        el.innerHTML = `<b>${sessionName(sessionNo(h))}</b>${pad(h)}:00–${pad(h)}:${pad(FOCUS_MIN)}`;
+      }
+      tt.appendChild(el);
     }
-    tt.appendChild(el);
+    const summary = document.getElementById('overlaySummary');
+    if (summary) {
+      const meals = [...cfg.meals].sort((a, b) => a.hour - b.hour).map(m => ` · ${m.hour}시 ${m.name}`).join('');
+      const when = cfg.date ? `${dateLabel(parseDay(cfg.date))} ` : '';
+      summary.textContent = `${when}${cfg.start}시~${cfg.end}시 · 매 정각 몰입 시작 · ${FOCUS_MIN}분 쉬는 시간${meals}`;
+    }
   }
+  buildTimetable();
 
   // ---- 렌더 루프 ----
   const $ = id => document.getElementById(id);
@@ -461,13 +548,14 @@
   function nextTransition(d) {
     const sec = secOfDay(d);
     const h = d.getHours();
-    const startSec = START_HOUR * 3600, endSec = END_HOUR * 3600;
-    if (sec < startSec) return { at: startSec, key: `focus-${START_HOUR}`, bell: START_BELL };
+    const startSec = cfg.start * 3600, endSec = cfg.end * 3600;
+    if (eventDayCompare(d) !== 0) return { at: Infinity, key: 'not-event-day', bell: null };
+    if (sec < startSec) return { at: startSec, key: `focus-${cfg.start}`, bell: START_BELL };
     if (sec >= endSec) return { at: 86400 + startSec, key: 'next-day', bell: null };
     const focusEnd = h * 3600 + FOCUS_MIN * 60;
-    if (h !== LUNCH_HOUR && sec < focusEnd) return { at: focusEnd, key: `break-${h}`, bell: BREAK_BELL };
+    if (!mealAt(h) && sec < focusEnd) return { at: focusEnd, key: `break-${h}`, bell: BREAK_BELL };
     const next = whatStartsAt(h + 1);
-    const bell = next.key === 'after' ? END_BELL : next.key === 'lunch' ? null : START_BELL;
+    const bell = next.key === 'after' ? END_BELL : next.key.startsWith('meal') ? null : START_BELL;
     return { at: (h + 1) * 3600, key: next.key, bell };
   }
 
@@ -491,7 +579,7 @@
   const GAP = 0.5;  // 몰입 호와 쉬는 시간 호 사이 틈 (분)
   function setArc(id, color, startMin, lenMin) {
     const el = $(id);
-    el.classList.remove('c-focus', 'c-break', 'c-lunch');
+    el.classList.remove('c-focus', 'c-break', 'c-meal');
     el.classList.add(color);
     if (lenMin <= 0) { el.style.opacity = 0; return; }
     el.style.opacity = '';
@@ -502,12 +590,12 @@
 
   function drawRing(d, st) {
     const m = d.getMinutes() + d.getSeconds() / 60;  // 이 시간의 몇 분째인지
-    const inHour = st.type === 'focus' || st.type === 'break' || st.type === 'lunch';
-    if (st.type === 'lunch') {
-      setArc('trackA', 'c-lunch', GAP, 60 - 2 * GAP);
-      setArc('trackB', 'c-lunch', 0, 0);
-      setArc('fillA', 'c-lunch', GAP, clamp(m - GAP, 0, 60 - 2 * GAP));
-      setArc('fillB', 'c-lunch', 0, 0);
+    const inHour = st.type === 'focus' || st.type === 'break' || st.type === 'meal';
+    if (st.type === 'meal') {
+      setArc('trackA', 'c-meal', GAP, 60 - 2 * GAP);
+      setArc('trackB', 'c-meal', 0, 0);
+      setArc('fillA', 'c-meal', GAP, clamp(m - GAP, 0, 60 - 2 * GAP));
+      setArc('fillB', 'c-meal', 0, 0);
       return;
     }
     // 몰입 0~50분(초록), 쉬는 시간 50~60분(주황)
@@ -521,13 +609,13 @@
     const d = now();
     const st = getState(d);
     const hh = d.getHours();
-    $('clock').textContent = `${hh < 12 ? '오전' : '오후'} ${hh % 12 || 12}:${pad(d.getMinutes())}`;
+    $('clock').textContent = `${dateLabel(d)}  ${hh < 12 ? '오전' : '오후'} ${hh % 12 || 12}:${pad(d.getMinutes())}`;
     $('phase').textContent = st.phase;
     const html = st.remain == null ? '' : remainHtml(st);
     if ($('remain').innerHTML !== html) $('remain').innerHTML = html;
     $('sub').textContent = st.sub;
     $('rule').textContent = st.rule;
-    ['focus', 'break', 'lunch'].forEach(c => document.body.classList.toggle(c, st.type === c));
+    ['focus', 'break', 'meal'].forEach(c => document.body.classList.toggle(c, st.type === c));
     document.body.classList.toggle('idle', !st.type);
 
     // 원 = 한 시간. 지금 몇 분인지만큼 12시 방향에서 시계방향으로 채워짐
@@ -535,7 +623,7 @@
 
     document.querySelectorAll('.slot').forEach(el => {
       const h = Number(el.dataset.hour);
-      const isNow = st.hour === h && (st.type === 'focus' || st.type === 'lunch');
+      const isNow = st.hour === h && (st.type === 'focus' || st.type === 'meal');
       const isDone = st.key === 'after' || (st.hour != null && (h < st.hour || (h === st.hour && st.type === 'break')));
       el.classList.toggle('now', isNow);
       el.classList.toggle('done', isDone);
@@ -569,7 +657,7 @@
 
   // ---- 설정 팝업 ----
   const settings = $('settings');
-  const openSettings = () => { settings.hidden = false; $('btnClose').focus(); };
+  const openSettings = () => { fillScheduleForm(); settings.hidden = false; $('btnClose').focus(); };
   const closeSettings = () => { settings.hidden = true; $('btnSettings').focus(); };
   $('btnSettings').onclick = openSettings;
   $('btnClose').onclick = closeSettings;
@@ -597,6 +685,88 @@
     e.currentTarget.textContent = muted ? '🔇 종소리 꺼짐' : '🔊 종소리 켜짐';
     e.currentTarget.classList.toggle('off', muted);
   };
+  // ---- 행사 일정 설정 ----
+  const MEAL_NAMES = ['아침', '점심', '저녁', '식사'];
+  const hourOpts = (from, to, sel) => {
+    let html = '';
+    for (let h = from; h <= to; h++) html += `<option value="${h}"${h === sel ? ' selected' : ''}>${pad(h)}:00</option>`;
+    return html;
+  };
+  function mealRow(meal) {
+    const row = document.createElement('div');
+    row.className = 'meal-row';
+    row.innerHTML = `
+      <select class="meal-name" aria-label="식사 이름">${MEAL_NAMES.map(n => `<option${n === meal.name ? ' selected' : ''}>${n}</option>`).join('')}</select>
+      <select class="meal-hour" aria-label="식사 시작 시각">${hourOpts(5, 23, meal.hour)}</select>
+      <span class="until">~ ${pad(meal.hour + 1)}:00</span>
+      <button type="button" aria-label="이 식사 시간 삭제">삭제</button>`;
+    row.querySelector('.meal-hour').addEventListener('change', e => {
+      row.querySelector('.until').textContent = `~ ${pad(Number(e.target.value) + 1)}:00`;
+    });
+    row.querySelector('button').onclick = () => { row.remove(); showEmptyMeals(); };
+    return row;
+  }
+  function showEmptyMeals() {
+    const box = $('cfgMeals');
+    const empty = box.querySelector('.empty');
+    const hasRows = box.querySelector('.meal-row');
+    if (!hasRows && !empty) box.insertAdjacentHTML('beforeend', '<div class="empty">없음 (계속 몰입)</div>');
+    if (hasRows && empty) empty.remove();
+  }
+  function fillScheduleForm() {
+    $('cfgDate').value = cfg.date || '';
+    $('cfgStart').innerHTML = hourOpts(5, 22, cfg.start);
+    $('cfgEnd').innerHTML = hourOpts(6, 24, cfg.end);
+    const box = $('cfgMeals');
+    box.innerHTML = '';
+    [...cfg.meals].sort((a, b) => a.hour - b.hour).forEach(m => box.appendChild(mealRow(m)));
+    showEmptyMeals();
+    $('cfgMsg').textContent = '';
+  }
+  function readScheduleForm() {
+    const next = {
+      date: $('cfgDate').value,
+      start: Number($('cfgStart').value),
+      end: Number($('cfgEnd').value),
+      meals: [...document.querySelectorAll('#cfgMeals .meal-row')].map(r => ({
+        name: r.querySelector('.meal-name').value,
+        hour: Number(r.querySelector('.meal-hour').value),
+      })),
+    };
+    if (next.end <= next.start) return { error: '끝나는 시각이 시작 시각보다 늦어야 해요.' };
+    const hours = next.meals.map(m => m.hour);
+    if (new Set(hours).size !== hours.length) return { error: '같은 시각에 식사 시간이 두 번 들어가 있어요.' };
+    const outside = next.meals.find(m => m.hour < next.start || m.hour >= next.end);
+    if (outside) return { error: `${outside.name} ${pad(outside.hour)}:00이 행사 시간(${pad(next.start)}:00~${pad(next.end)}:00) 밖이에요.` };
+    if (next.end - next.start - next.meals.length < 1) return { error: '몰입 시간이 하나도 없어요. 식사 시간을 줄여주세요.' };
+    return { cfg: next };
+  }
+  $('cfgDateClear').onclick = () => { $('cfgDate').value = ''; };
+  $('cfgAddMeal').onclick = () => {
+    const used = new Set([...document.querySelectorAll('#cfgMeals .meal-hour')].map(s => Number(s.value)));
+    const start = Number($('cfgStart').value), end = Number($('cfgEnd').value);
+    let hour = 18;
+    if (used.has(hour) || hour < start || hour >= end) {
+      for (let h = start; h < end; h++) if (!used.has(h)) { hour = h; break; }
+    }
+    $('cfgMeals').appendChild(mealRow({ name: hour >= 16 ? '저녁' : hour < 11 ? '아침' : '점심', hour }));
+    showEmptyMeals();
+  };
+  $('cfgApply').onclick = () => {
+    const r = readScheduleForm();
+    const msg = $('cfgMsg');
+    if (r.error) { msg.textContent = r.error; msg.className = 'msg err'; return; }
+    cfg = r.cfg;
+    try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {}
+    computeSessions();
+    buildTimetable();
+    stopAllBells();  // 예약된 종을 지우고 새 일정으로 다시 예약
+    tick();
+    msg.textContent = '적용했어요.';
+    msg.className = 'msg ok';
+  };
+  fillScheduleForm();
+
   document.addEventListener('fullscreenchange', () => {
     const full = !!document.fullscreenElement;
     $('btnFull').title = $('btnFull').ariaLabel = full ? '전체화면 끄기' : '전체화면';
