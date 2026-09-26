@@ -8,6 +8,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&display=swap">
 <style>
   :root {
+    /* 화면 크기 단위: 높이의 1%와 폭의 0.75% 중 작은 쪽. 모니터 비율이 달라도 요소 사이 비례가 같게 유지됨 */
+    --s: min(1vh, 0.75vw);
     --bg: #f3f8f2;
     --fg: #1f2d26;
     --muted: #6b8078;
@@ -31,20 +33,21 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    padding: 4vh 40px 4vh;
+    justify-content: center;
+    gap: calc(var(--s) * 4);
+    padding: calc(var(--s) * 3) 40px;
     transition: background 1.2s ease, color 1.2s ease;
     overflow: hidden;
   }
 
-  header { display: flex; flex-direction: column; align-items: center; gap: 1.6vh; }
-  .brand { display: flex; align-items: center; gap: 2vh; }
-  .brand-logo { height: 5.4vh; width: auto; display: block; }
-  .brand-divider { width: 2px; height: 4.2vh; background: currentColor; opacity: 0.15; border-radius: 1px; }
-  .brand-text { font-size: 3.4vh; font-weight: 700; letter-spacing: 0.06em; color: var(--ink); }
+  header { display: flex; flex-direction: column; align-items: center; gap: calc(var(--s) * 1.6); }
+  .brand { display: flex; align-items: center; gap: calc(var(--s) * 2); }
+  .brand-logo { height: calc(var(--s) * 5.4); width: auto; display: block; }
+  .brand-divider { width: 2px; height: calc(var(--s) * 4.2); background: currentColor; opacity: 0.15; border-radius: 1px; }
+  .brand-text { font-size: calc(var(--s) * 3.4); font-weight: 700; letter-spacing: 0.06em; color: var(--ink); }
   .clock {
     display: flex; align-items: center; gap: 0.5em;
-    font-size: 3.2vh; line-height: 1; font-variant-numeric: tabular-nums; color: var(--fg);
+    font-size: calc(var(--s) * 3.2); line-height: 1; font-variant-numeric: tabular-nums; color: var(--fg);
   }
   .clock-label {
     display: inline-flex; align-items: center; justify-content: center;
@@ -56,12 +59,12 @@
   .clock-time { text-box: trim-both cap alphabetic; }
   .clock-label > span { text-box: trim-both cap alphabetic; }
 
-  main { display: flex; flex-direction: column; align-items: center; gap: 3vh; }
+  main { display: flex; flex-direction: column; align-items: center; gap: calc(var(--s) * 3); }
   .ring-wrap {
-    position: relative; width: 56vh; aspect-ratio: 1;
+    position: relative; width: calc(var(--s) * 56); aspect-ratio: 1;
     border-radius: 50%;
     background: var(--card);
-    box-shadow: 0 2vh 6vh rgba(0, 0, 0, 0.07);
+    box-shadow: 0 calc(var(--s) * 2) calc(var(--s) * 6) rgba(0, 0, 0, 0.07);
   }
   .ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
   .arc { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke 1.2s, opacity 0.3s; }
@@ -76,25 +79,25 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     text-align: center;
   }
-  .phase { font-size: 4.4vh; font-weight: 700; color: var(--accent); }
-  .remain { font-size: 15vh; font-weight: 300; font-variant-numeric: tabular-nums; line-height: 1.05; }
+  .phase { font-size: calc(var(--s) * 4.4); font-weight: 700; color: var(--accent); }
+  .remain { font-size: calc(var(--s) * 15); font-weight: 300; font-variant-numeric: tabular-nums; line-height: 1.05; }
   .remain .unit { font-size: 0.4em; font-weight: 400; margin-left: 0.08em; color: var(--muted); }
   .remain .unit.left { font-size: 0.22em; margin-left: 0.4em; }
-  .sub { font-size: 2.4vh; color: var(--muted); margin-top: 0.4em; }
+  .sub { font-size: calc(var(--s) * 2.4); color: var(--muted); margin-top: 0.4em; }
   .ring-center > * { max-width: 76%; word-break: keep-all; }
 
   .rule {
-    font-size: 2.8vh;
+    font-size: calc(var(--s) * 2.8);
     padding: 0.6em 1.6em;
     border-radius: 999px;
     background: var(--card);
-    box-shadow: 0 0.5vh 2vh rgba(0, 0, 0, 0.05);
+    box-shadow: 0 calc(var(--s) * 0.5) calc(var(--s) * 2) rgba(0, 0, 0, 0.05);
     text-align: center;
   }
 
   .timetable { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
   .slot {
-    font-size: 1.6vh;
+    font-size: calc(var(--s) * 1.6);
     padding: 0.5em 1em;
     border-radius: 10px;
     background: var(--card);
@@ -163,7 +166,8 @@
     font: inherit; font-size: 14px; color: #1f2d26;
     border: 1px solid #d9e2dc; border-radius: 8px; padding: 6px 8px; background: #fff;
   }
-  .panel input[type="date"] { flex: 1; }
+  .panel input[type="date"] { flex: 1; cursor: pointer; }
+  .panel input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; }
   .meals { flex: 1; display: flex; flex-direction: column; gap: 6px; }
   .meal-row { display: flex; align-items: center; gap: 6px; }
   .meal-row .until { color: #8a978f; font-variant-numeric: tabular-nums; }
@@ -700,6 +704,7 @@
     if (hasRows && empty) empty.remove();
   }
   function fillScheduleForm() {
+    $('cfgDate').min = dayKey(now());  // 지난 날짜는 달력에서 고를 수 없게
     $('cfgDate').value = cfg.date || '';
     $('cfgStart').innerHTML = hourOpts(5, 22, cfg.start);
     $('cfgEnd').innerHTML = hourOpts(6, 24, cfg.end);
@@ -719,6 +724,7 @@
         hour: Number(r.querySelector('.meal-hour').value),
       })),
     };
+    if (next.date && next.date < dayKey(now())) return { error: '지난 날짜는 고를 수 없어요.' };
     if (next.end <= next.start) return { error: '끝나는 시각이 시작 시각보다 늦어야 해요.' };
     const hours = next.meals.map(m => m.hour);
     if (new Set(hours).size !== hours.length) return { error: '같은 시각에 식사 시간이 두 번 들어가 있어요.' };
@@ -728,6 +734,8 @@
     return { cfg: next };
   }
   $('cfgDateClear').onclick = () => { $('cfgDate').value = ''; };
+  // 날짜 칸 아무 데나 눌러도 달력이 열리게
+  $('cfgDate').addEventListener('click', e => { try { e.currentTarget.showPicker(); } catch (err) {} });
   $('cfgAddMeal').onclick = () => {
     const used = new Set([...document.querySelectorAll('#cfgMeals .meal-hour')].map(s => Number(s.value)));
     const start = Number($('cfgStart').value), end = Number($('cfgEnd').value);
