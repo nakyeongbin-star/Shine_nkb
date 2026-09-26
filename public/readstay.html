@@ -363,7 +363,7 @@
         <div class="meals" id="cfgMeals"></div>
       </div>
       <button class="opt small" id="cfgAddMeal" type="button">+ 식사 시간 추가</button>
-      <p class="hint">날짜를 비워두면 타이머와 종이 멈춰요. 식사 시간은 1시간 단위이고 그 시간엔 몰입·종이 쉬어요. 설정은 이 기기(브라우저)에 저장돼요.</p>
+      <p class="hint">날짜를 비워두면 타이머와 종이 멈춰요. 식사 시간은 1시간 단위예요. 식사 바로 앞 시간은 쉬는 시간 없이 정각까지 60분 몰입해요. 설정은 이 기기(브라우저)에 저장돼요.</p>
       <button class="opt primary" id="cfgApply" type="button">적용</button>
       <p class="msg" id="cfgMsg" role="status"></p>
     </div>
@@ -463,6 +463,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
   computeSessions();
   const sessionNo = h => sessionHours.indexOf(h) + 1;
+  // 몰입 시간(분). 바로 다음 시간이 식사면 쉬는 시간 없이 정각까지 60분 몰입.
+  const focusMinAt = h => (mealAt(h + 1) ? 60 : FOCUS_MIN);
+  const focusEndLabel = h => (focusMinAt(h) === 60 ? `${pad(h + 1)}:00` : `${pad(h)}:${pad(FOCUS_MIN)}`);
 
   // 어떤 시각(시)이 시작될 때 무엇이 오는지
   function whatStartsAt(h) {
@@ -508,15 +511,16 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
                sub: `${pad(h + 1)}:00 ${next.label}`,
                rule: '🍽️ 맛있게 드시고 오세요 · 짐은 두고 가셔도 돼요' };
     }
-    const focusSec = FOCUS_MIN * 60;
+    const focusMin = focusMinAt(h);
+    const focusSec = focusMin * 60;
     const n = sessionNo(h);
     if (secInHour < focusSec) {
-      return { key: `focus-${h}`, type: 'focus', hour: h, phase: `${sessionName(n)} 몰입`,
+      return { key: `focus-${h}`, type: 'focus', hour: h, focusMin, phase: `${sessionName(n)} 몰입`,
                remain: focusSec - secInHour, total: focusSec,
-               sub: `${pad(h)}:${pad(FOCUS_MIN)} 까지`,
+               sub: focusMin === 60 ? `${focusEndLabel(h)} 까지 · 이어서 ${next.label}` : `${focusEndLabel(h)} 까지`,
                rule: '🤫 대화 없이 몰입 중 · 출입은 조용히 자유롭게' };
     }
-    return { key: `break-${h}`, type: 'break', hour: h, phase: '쉬는 시간',
+    return { key: `break-${h}`, type: 'break', hour: h, focusMin, phase: '쉬는 시간',
              remain: 3600 - secInHour, total: 3600 - focusSec,
              sub: `${pad(h + 1)}:00 ${next.label}`,
              rule: '☕ 스트레칭 · 물 한 잔 · 대화는 공간 밖에서' };
@@ -621,7 +625,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         el.classList.add('meal');
         el.innerHTML = `<b>${meal.name}</b>${pad(h)}:00–${pad(h + 1)}:00`;
       } else {
-        el.innerHTML = `<b>${sessionName(sessionNo(h))}</b>${pad(h)}:00–${pad(h)}:${pad(FOCUS_MIN)}`;
+        el.innerHTML = `<b>${sessionName(sessionNo(h))}</b>${pad(h)}:00–${focusEndLabel(h)}`;
       }
       tt.appendChild(el);
     }
@@ -649,10 +653,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if (eventDayCompare(d) !== 0) return { at: Infinity, key: 'not-event-day', bell: null };
     if (sec < startSec) return { at: startSec, key: `focus-${cfg.start}`, bell: START_BELL };
     if (sec >= endSec) return { at: 86400 + startSec, key: 'next-day', bell: null };
-    const focusEnd = h * 3600 + FOCUS_MIN * 60;
-    if (!mealAt(h) && sec < focusEnd) return { at: focusEnd, key: `break-${h}`, bell: BREAK_BELL };
+    const focusEnd = h * 3600 + focusMinAt(h) * 60;
+    if (!mealAt(h) && focusMinAt(h) < 60 && sec < focusEnd) return { at: focusEnd, key: `break-${h}`, bell: BREAK_BELL };
     const next = whatStartsAt(h + 1);
-    const bell = next.key === 'after' ? END_BELL : next.key.startsWith('meal') ? null : START_BELL;
+    // 식사 시작: 바로 앞이 몰입이었으면 몰입 끝 종(쉬는종), 식사가 연달아 오면 종 없음
+    const mealBell = mealAt(h) ? null : BREAK_BELL;
+    const bell = next.key === 'after' ? END_BELL : next.key.startsWith('meal') ? mealBell : START_BELL;
     return { at: (h + 1) * 3600, key: next.key, bell };
   }
 
@@ -695,11 +701,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       setArc('fillB', 'c-meal', 0, 0);
       return;
     }
-    // 몰입 0~50분(초록), 쉬는 시간 50~60분(주황)
-    setArc('trackA', 'c-focus', GAP, FOCUS_MIN - 2 * GAP);
-    setArc('trackB', 'c-break', FOCUS_MIN + GAP, 60 - FOCUS_MIN - 2 * GAP);
-    setArc('fillA', 'c-focus', GAP, inHour ? clamp(m - GAP, 0, FOCUS_MIN - 2 * GAP) : 0);
-    setArc('fillB', 'c-break', FOCUS_MIN + GAP, inHour ? clamp(m - FOCUS_MIN - GAP, 0, 60 - FOCUS_MIN - 2 * GAP) : 0);
+    // 몰입 0~50분(초록), 쉬는 시간 50~60분(주황). 식사 바로 앞 시간은 60분 모두 몰입.
+    const fm = st.focusMin ?? FOCUS_MIN;
+    setArc('trackA', 'c-focus', GAP, fm - 2 * GAP);
+    setArc('trackB', 'c-break', fm + GAP, 60 - fm - 2 * GAP);
+    setArc('fillA', 'c-focus', GAP, inHour ? clamp(m - GAP, 0, fm - 2 * GAP) : 0);
+    setArc('fillB', 'c-break', fm + GAP, inHour ? clamp(m - fm - GAP, 0, 60 - fm - 2 * GAP) : 0);
   }
 
   function tick() {
