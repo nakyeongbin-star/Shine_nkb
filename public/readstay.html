@@ -50,12 +50,13 @@
   }
   .clock-label {
     display: inline-flex; align-items: center; justify-content: center;
-    height: 1.35em; padding: 0 0.6em;
+    padding: 0.42em 0.65em;
     font-family: "Montserrat", "Pretendard", "Malgun Gothic", sans-serif;
     font-size: 0.55em; font-weight: 700; letter-spacing: 0.12em; line-height: 1;
     color: #fff; background: var(--accent); border-radius: 999px;
   }
-  .clock-time { display: inline-flex; align-items: center; height: 1em; }
+  .clock-time { text-box: trim-both cap alphabetic; }
+  .clock-label > span { text-box: trim-both cap alphabetic; }
 
   main { display: flex; flex-direction: column; align-items: center; gap: 3vh; }
   .ring-wrap {
@@ -65,10 +66,13 @@
     box-shadow: 0 2vh 6vh rgba(0, 0, 0, 0.07);
   }
   .ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-  .ring-bg { stroke: var(--ring-bg); }
+  .arc { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke 1.2s, opacity 0.3s; }
+  .arc.track { opacity: 0.16; }
+  .arc.c-focus { stroke: #2e9d63; }
+  .arc.c-break { stroke: #e08a1e; }
+  .arc.c-lunch { stroke: #e0705c; }
   .ticks line { stroke: var(--muted); stroke-width: 1.2; stroke-linecap: round; opacity: 0.35; }
   .ticks line.major { stroke-width: 2; opacity: 0.6; }
-  .ring-fg { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 0.3s linear, stroke 1.2s, opacity 0.3s; }
   .ring-center {
     position: absolute; inset: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -198,7 +202,7 @@
     <svg role="img" aria-label="Read365"><use href="#logo"/></svg>
     <span class="brand-text">READ · STAY</span>
   </div>
-  <div class="clock" aria-label="현재 시각"><span class="clock-label">NOW</span><span class="clock-time" id="clock">--:--</span></div>
+  <div class="clock" aria-label="현재 시각"><span class="clock-label"><span>NOW</span></span><span class="clock-time" id="clock">--:--</span></div>
 </header>
 
 <div class="top-actions">
@@ -221,10 +225,11 @@
 <main>
   <div class="ring-wrap">
     <svg viewBox="0 0 200 200">
-      <circle class="ring-bg" cx="100" cy="100" r="92" fill="none" stroke-width="6"/>
       <g class="ticks" id="ticks"></g>
-      <circle class="ring-fg" id="ring" cx="100" cy="100" r="92" fill="none" stroke-width="6"
-              stroke-dasharray="578.05" stroke-dashoffset="578.05"/>
+      <circle class="arc track" id="trackA" cx="100" cy="100" r="92"/>
+      <circle class="arc track" id="trackB" cx="100" cy="100" r="92"/>
+      <circle class="arc fill" id="fillA" cx="100" cy="100" r="92"/>
+      <circle class="arc fill" id="fillB" cx="100" cy="100" r="92"/>
     </svg>
     <div class="ring-center">
       <div class="phase" id="phase">-</div>
@@ -466,19 +471,12 @@
     return { at: (h + 1) * 3600, key: next.key, bell };
   }
 
-  // 원 둘레 눈금: 몰입·점심은 5분마다, 쉬는 시간(10분)은 1분마다. 시작점(12시 방향)만 굵게.
-  let tickTotal = null;
-  function drawTicks(total) {
-    if (total === tickTotal) return;
-    tickTotal = total;
+  // 원 = 시계처럼 한 시간(60분). 5분마다 눈금, 0·15·30·45분은 굵게.
+  (function drawTicks() {
     const g = $('ticks');
-    g.innerHTML = '';
-    if (!total) return;
-    const step = total > 900 ? 300 : 60;
-    const n = Math.round(total / step);
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * 2 * Math.PI;
-      const major = i === 0;
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * 2 * Math.PI;
+      const major = i % 3 === 0;
       const r1 = major ? 76 : 79, r2 = 84;
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       line.setAttribute('x1', 100 + r1 * Math.cos(a)); line.setAttribute('y1', 100 + r1 * Math.sin(a));
@@ -486,6 +484,37 @@
       if (major) line.classList.add('major');
       g.appendChild(line);
     }
+  })();
+
+  // startMin분 위치부터 lenMin분 길이의 호를 그린다 (0분 = 12시 방향)
+  const PER_MIN = CIRC / 60;
+  const GAP = 0.5;  // 몰입 호와 쉬는 시간 호 사이 틈 (분)
+  function setArc(id, color, startMin, lenMin) {
+    const el = $(id);
+    el.classList.remove('c-focus', 'c-break', 'c-lunch');
+    el.classList.add(color);
+    if (lenMin <= 0) { el.style.opacity = 0; return; }
+    el.style.opacity = '';
+    el.style.strokeDasharray = `${lenMin * PER_MIN} ${CIRC}`;
+    el.style.strokeDashoffset = `${-startMin * PER_MIN}`;
+  }
+  const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+
+  function drawRing(d, st) {
+    const m = d.getMinutes() + d.getSeconds() / 60;  // 이 시간의 몇 분째인지
+    const inHour = st.type === 'focus' || st.type === 'break' || st.type === 'lunch';
+    if (st.type === 'lunch') {
+      setArc('trackA', 'c-lunch', GAP, 60 - 2 * GAP);
+      setArc('trackB', 'c-lunch', 0, 0);
+      setArc('fillA', 'c-lunch', GAP, clamp(m - GAP, 0, 60 - 2 * GAP));
+      setArc('fillB', 'c-lunch', 0, 0);
+      return;
+    }
+    // 몰입 0~50분(초록), 쉬는 시간 50~60분(주황)
+    setArc('trackA', 'c-focus', GAP, FOCUS_MIN - 2 * GAP);
+    setArc('trackB', 'c-break', FOCUS_MIN + GAP, 60 - FOCUS_MIN - 2 * GAP);
+    setArc('fillA', 'c-focus', GAP, inHour ? clamp(m - GAP, 0, FOCUS_MIN - 2 * GAP) : 0);
+    setArc('fillB', 'c-break', FOCUS_MIN + GAP, inHour ? clamp(m - FOCUS_MIN - GAP, 0, 60 - FOCUS_MIN - 2 * GAP) : 0);
   }
 
   function tick() {
@@ -501,11 +530,8 @@
     ['focus', 'break', 'lunch'].forEach(c => document.body.classList.toggle(c, st.type === c));
     document.body.classList.toggle('idle', !st.type);
 
-    // 지난 시간만큼 12시 방향에서 시계방향으로 채워짐
-    const elapsed = st.total ? 1 - st.remain / st.total : (st.key === 'after' ? 1 : 0);
-    $('ring').style.strokeDashoffset = CIRC * (1 - elapsed);
-    $('ring').style.opacity = elapsed > 0.002 ? 1 : 0;
-    drawTicks(st.total);
+    // 원 = 한 시간. 지금 몇 분인지만큼 12시 방향에서 시계방향으로 채워짐
+    drawRing(d, st);
 
     document.querySelectorAll('.slot').forEach(el => {
       const h = Number(el.dataset.hour);
