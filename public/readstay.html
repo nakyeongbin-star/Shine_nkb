@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>리드스테이 타이머</title>
+<title>Read365 리드스테이</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&display=swap">
 <style>
   :root {
     --bg: #f3f8f2;
@@ -13,8 +15,11 @@
     --ring-bg: rgba(46, 157, 99, 0.12);
     --card: #ffffff;
     --line: rgba(31, 45, 38, 0.08);
+    --brand: #f4a08f;   /* Read365 코랄 */
+    --ink: #222222;
   }
   body.break { --bg: #fdf5e9; --fg: #3a2c1a; --muted: #8f7658; --accent: #e08a1e; --ring-bg: rgba(224, 138, 30, 0.14); --line: rgba(58, 44, 26, 0.08); }
+  body.lunch { --bg: #fdf0ec; --fg: #3b2420; --muted: #97716a; --accent: #e0705c; --ring-bg: rgba(224, 112, 92, 0.14); --line: rgba(59, 36, 32, 0.08); }
   body.idle  { --bg: #f2f4f9; --fg: #232838; --muted: #737a90; --accent: #5669b0; --ring-bg: rgba(86, 105, 176, 0.12); --line: rgba(35, 40, 56, 0.08); }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,19 +32,23 @@
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    min-width: 1024px;
-    padding: 4vh 40px 3vh;
+    padding: 4vh 40px 4vh;
     transition: background 1.2s ease, color 1.2s ease;
     overflow: hidden;
   }
 
-  header { text-align: center; }
-  .brand { font-size: 2.4vh; font-weight: 700; letter-spacing: 0.45em; color: var(--accent); }
-  .clock { font-size: 3.6vh; font-variant-numeric: tabular-nums; margin-top: 0.2em; color: var(--muted); }
+  header { display: flex; flex-direction: column; align-items: center; gap: 0.6vh; }
+  .brand { display: flex; align-items: center; gap: 1.2vh; }
+  .brand svg { width: 6vh; height: 6vh; flex: none; }
+  .brand-text {
+    font-family: "Montserrat", "Pretendard", "Malgun Gothic", sans-serif;
+    font-size: 3vh; font-weight: 700; letter-spacing: 0.32em; color: var(--ink);
+  }
+  .clock { font-size: 3.4vh; font-variant-numeric: tabular-nums; color: var(--muted); }
 
   main { display: flex; flex-direction: column; align-items: center; gap: 3vh; }
   .ring-wrap {
-    position: relative; width: 58vh; aspect-ratio: 1;
+    position: relative; width: 56vh; aspect-ratio: 1;
     border-radius: 50%;
     background: var(--card);
     box-shadow: 0 2vh 6vh rgba(0, 0, 0, 0.07);
@@ -66,7 +75,7 @@
     text-align: center;
   }
 
-  .timetable { display: flex; gap: 8px; justify-content: center; }
+  .timetable { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
   .slot {
     font-size: 1.6vh;
     padding: 0.5em 1em;
@@ -78,27 +87,64 @@
     text-align: center;
   }
   .slot b { display: block; font-size: 1.1em; color: var(--fg); }
+  .slot.lunch { background: transparent; border-style: dashed; }
   .slot.done { opacity: 0.4; }
-  .slot.now { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .slot.now { background: var(--accent); border-color: var(--accent); border-style: solid; color: #fff; }
   .slot.now b { color: #fff; }
 
-  .controls { display: flex; justify-content: center; gap: 8px; margin-top: 1.5vh; opacity: 0.3; transition: opacity 0.3s; }
-  .controls:hover, .controls:focus-within { opacity: 1; }
-  .controls button {
-    background: var(--card); color: var(--fg);
-    border: 1px solid var(--line); border-radius: 8px;
-    padding: 0.5em 1em; font: inherit; font-size: 14px; cursor: pointer;
+  /* ---- 설정 ---- */
+  .gear {
+    position: fixed; top: 20px; right: 24px;
+    width: 44px; height: 44px; border-radius: 50%;
+    border: none; background: transparent; color: var(--muted);
+    cursor: pointer; opacity: 0.45; transition: opacity 0.2s, background 0.2s;
+    display: grid; place-items: center;
   }
+  .gear:hover, .gear:focus-visible { opacity: 1; background: var(--card); }
+  .gear svg { width: 24px; height: 24px; }
+
+  .modal {
+    position: fixed; inset: 0; z-index: 10;
+    background: rgba(20, 24, 22, 0.35);
+    display: grid; place-items: center;
+  }
+  .modal[hidden] { display: none; }
+  .panel {
+    background: #fff; color: #1f2d26;
+    width: min(380px, calc(100vw - 32px));
+    border-radius: 16px; padding: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .panel-head { display: flex; justify-content: space-between; align-items: center; }
+  .panel-head h2 { font-size: 18px; }
+  .panel-head button { border: none; background: none; font-size: 22px; line-height: 1; color: #6b8078; cursor: pointer; padding: 4px 8px; }
+  .group { display: flex; flex-direction: column; gap: 8px; }
+  .group-label { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #8a978f; }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+  .panel button.opt {
+    background: #f3f6f4; color: #1f2d26;
+    border: 1px solid #e3e9e5; border-radius: 10px;
+    padding: 10px 12px; font: inherit; font-size: 14px; cursor: pointer;
+  }
+  .panel button.opt:hover { background: #e8efeb; }
+  .panel button.opt.off { background: #fbe9e6; border-color: #f2c9c1; }
+  .volume { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .volume input { flex: 1; accent-color: #2e9d63; }
+  .volume output { width: 3em; text-align: right; font-variant-numeric: tabular-nums; color: #6b8078; }
+  .hint { font-size: 12px; color: #8a978f; line-height: 1.5; }
 
   #overlay {
-    position: fixed; inset: 0;
-    background: rgba(255, 255, 255, 0.9);
+    position: fixed; inset: 0; z-index: 20;
+    background: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(6px);
     color: #1f2d26;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 24px; cursor: pointer; text-align: center;
   }
-  #overlay h1 { font-size: 64px; }
+  #overlay svg { width: 120px; height: 120px; }
+  #overlay h1 { font-size: 56px; }
   #overlay p { color: #6b8078; font-size: 20px; line-height: 1.6; }
   #overlay .go {
     background: #2e9d63; color: #fff; font-weight: 700;
@@ -107,14 +153,36 @@
   }
   body.ringing .ring-wrap { animation: pulse 1s ease-in-out 4; }
   @keyframes pulse { 50% { transform: scale(1.03); } }
+  @media (prefers-reduced-motion: reduce) { body.ringing .ring-wrap { animation: none; } }
 </style>
 </head>
 <body class="idle">
 
+<!-- Read365 로고 (펼친 책 + Read / 365) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="logo" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="50" fill="#f4a08f"/>
+    <text x="50" y="35" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-weight="600" font-size="15" fill="#222">Read</text>
+    <path d="M50 46 C42 41 30 41 21 44 L21 72 C30 69 42 69 50 74 C58 69 70 69 79 72 L79 44 C70 41 58 41 50 46 Z M50 69 L50 74"
+          fill="none" stroke="#222" stroke-width="2.6" stroke-linejoin="round"/>
+    <text x="50" y="65" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="15" fill="#222">365</text>
+  </symbol>
+</svg>
+
 <header>
-  <div class="brand">READ · STAY</div>
+  <div class="brand">
+    <svg role="img" aria-label="Read365"><use href="#logo"/></svg>
+    <span class="brand-text">READ · STAY</span>
+  </div>
   <div class="clock" id="clock">--:--</div>
 </header>
+
+<button class="gear" id="btnSettings" aria-label="설정" title="설정">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </svg>
+</button>
 
 <main>
   <div class="ring-wrap">
@@ -134,27 +202,56 @@
 
 <footer>
   <div class="timetable" id="timetable"></div>
-  <div class="controls">
-    <button id="btnTestStart">🔔 시작종 듣기</button>
-    <button id="btnTestEnd">🔔 쉬는종 듣기</button>
-    <button id="btnMute">🔊 소리 켜짐</button>
-    <button id="btnFull">⛶ 전체화면</button>
-  </div>
 </footer>
 
+<div class="modal" id="settings" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="panel-head">
+      <h2 id="settingsTitle">설정</h2>
+      <button id="btnClose" aria-label="닫기">×</button>
+    </div>
+    <div class="group">
+      <div class="group-label">종소리 미리 듣기</div>
+      <div class="row">
+        <button class="opt" id="btnTestStart">🔔 시작종</button>
+        <button class="opt" id="btnTestEnd">🔔 쉬는종</button>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-label">소리</div>
+      <div class="volume">
+        <span>볼륨</span>
+        <input type="range" id="volume" min="0" max="100" step="5" value="70">
+        <output id="volumeOut">70%</output>
+      </div>
+      <button class="opt" id="btnMute">🔊 종소리 켜짐</button>
+    </div>
+    <div class="group">
+      <div class="group-label">화면</div>
+      <button class="opt" id="btnFull">⛶ 전체화면</button>
+    </div>
+    <p class="hint">종소리를 끄면 정각·50분 종도 울리지 않아요. 행사 중에는 켜 두세요.</p>
+  </div>
+</div>
+
 <div id="overlay">
-  <h1>📚 리드스테이</h1>
-  <p>매 정각 몰입 시작 · 50분 쉬는 시간<br>종소리를 울리려면 화면을 한 번 눌러주세요</p>
+  <svg role="img" aria-label="Read365"><use href="#logo"/></svg>
+  <h1>리드스테이</h1>
+  <p>매 정각 몰입 시작 · 50분 쉬는 시간 · 12시 점심<br>종소리를 울리려면 화면을 한 번 눌러주세요</p>
   <div class="go">시작하기</div>
 </div>
 
 <script>
 (() => {
-  // ---- 설정 (URL 파라미터로 변경 가능: ?start=9&end=18&focus=50) ----
+  // ---- 설정 (URL 파라미터로 변경 가능: ?start=9&end=18&focus=50&lunch=12, lunch=off 로 점심 없음) ----
   const params = new URLSearchParams(location.search);
   const START_HOUR = Number(params.get('start') ?? 9);
   const END_HOUR = Number(params.get('end') ?? 18);
   const FOCUS_MIN = Number(params.get('focus') ?? 50);
+  const LUNCH_HOUR = params.get('lunch') === 'off' ? -1 : Number(params.get('lunch') ?? 12);
+
+  // 몰입 시간 이름. 바꾸려면 여기만 고치면 됨 (예: n => `${n}번째 스테이`)
+  const sessionName = n => `챕터 ${n}`;
 
   // 테스트용: ?t=08:59:50 처럼 주면 그 시각부터 시계가 흐름
   let offsetMs = 0;
@@ -166,37 +263,57 @@
   }
   const now = () => new Date(Date.now() + offsetMs);
 
-  // ---- 교시 계산 ----
+  const pad = n => String(Math.floor(n)).padStart(2, '0');
+  const secOfDay = d => d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000;
+
+  // ---- 하루 일정 ----
+  // 몰입하는 시간대(시)와 순번. 점심 시간은 빠진다.
+  const sessionHours = [];
+  for (let h = START_HOUR; h < END_HOUR; h++) if (h !== LUNCH_HOUR) sessionHours.push(h);
+  const sessionNo = h => sessionHours.indexOf(h) + 1;
+
+  // 어떤 시각(시)이 시작될 때 무엇이 오는지
+  function whatStartsAt(h) {
+    if (h >= END_HOUR) return { label: '종료', key: 'after' };
+    if (h === LUNCH_HOUR) return { label: '점심시간', key: 'lunch' };
+    return { label: `${sessionName(sessionNo(h))} 시작`, key: `focus-${h}` };
+  }
+
   function getState(d) {
-    const h = d.getHours(), m = d.getMinutes(), s = d.getSeconds();
-    const secOfDay = h * 3600 + m * 60 + s + d.getMilliseconds() / 1000;
+    const h = d.getHours();
+    const sec = secOfDay(d);
     const startSec = START_HOUR * 3600, endSec = END_HOUR * 3600;
 
-    if (secOfDay < startSec) {
-      return { key: 'before', phase: '시작 전', remain: startSec - secOfDay, total: null,
-               sub: `${pad(START_HOUR)}:00 첫 몰입 시작`, rule: '곧 리드스테이가 시작됩니다' };
+    if (sec < startSec) {
+      return { key: 'before', phase: '시작 전', remain: startSec - sec, total: null,
+               sub: `${pad(START_HOUR)}:00 ${sessionName(1)} 시작`, rule: '곧 리드스테이가 시작됩니다' };
     }
-    if (secOfDay >= endSec) {
+    if (sec >= endSec) {
       return { key: 'after', phase: '오늘의 리드스테이 종료', remain: null, total: null,
                sub: '함께 머물러 주셔서 고맙습니다', rule: '다음에 또 만나요 👋' };
     }
-    const period = h - START_HOUR + 1;
-    const secInHour = m * 60 + s + d.getMilliseconds() / 1000;
+    const secInHour = sec - h * 3600;
+    const next = whatStartsAt(h + 1);
+    if (h === LUNCH_HOUR) {
+      return { key: 'lunch', type: 'lunch', hour: h, phase: '점심시간',
+               remain: 3600 - secInHour, total: 3600,
+               sub: `${pad(h + 1)}:00 ${next.label}`,
+               rule: '🍽️ 맛있게 드시고 오세요 · 짐은 두고 가셔도 돼요' };
+    }
     const focusSec = FOCUS_MIN * 60;
+    const n = sessionNo(h);
     if (secInHour < focusSec) {
-      return { key: `focus-${period}`, type: 'focus', period, phase: `${period}교시 몰입`,
+      return { key: `focus-${h}`, type: 'focus', hour: h, phase: `${sessionName(n)} 몰입`,
                remain: focusSec - secInHour, total: focusSec,
                sub: `${pad(h)}:${pad(FOCUS_MIN)} 까지`,
                rule: '🤫 말소리 없이 몰입 중 · 출입은 조용히 자유롭게' };
     }
-    const last = h + 1 >= END_HOUR;
-    return { key: `break-${period}`, type: 'break', period, phase: '쉬는 시간',
+    return { key: `break-${h}`, type: 'break', hour: h, phase: '쉬는 시간',
              remain: 3600 - secInHour, total: 3600 - focusSec,
-             sub: last ? `${pad(h + 1)}:00 종료` : `${pad(h + 1)}:00 ${period + 1}교시 시작`,
+             sub: `${pad(h + 1)}:00 ${next.label}`,
              rule: '☕ 스트레칭 · 물 한 잔 · 대화는 공간 밖에서' };
   }
 
-  const pad = n => String(Math.floor(n)).padStart(2, '0');
   // 남은 시간을 차분하게 표시: 분 단위(1분에 한 번만 바뀜).
   // 초는 쉬는 시간 마지막 1분에만 보여준다 (곧 시작한다는 준비 신호).
   function remainParts(st) {
@@ -213,12 +330,17 @@
   const remainHtml = st => remainParts(st).map(([n, u]) => `${n}<span class="unit">${u}</span>`).join(' ');
 
   // ---- 종소리 (Web Audio로 합성, 외부 파일 없음) ----
-  let ctx = null, muted = false;
+  let ctx = null, muted = false, volume = 0.7;
   const NOTE = { G4: 392.0, C5: 523.25, D5: 587.33, E5: 659.25 };
   // 학교종 "딩동댕동" (웨스트민스터 차임)
   const START_BELL = ['E5', 'C5', 'D5', 'G4', null, 'G4', 'D5', 'E5', 'C5'];
   const BREAK_BELL = ['C5', 'E5', 'D5', 'G4', null, 'G4', 'D5', 'E5', 'C5'];
   const END_BELL = ['E5', 'C5', 'D5', 'G4', null, 'G4', 'D5', 'E5', 'C5', null, 'C5'];
+
+  try {
+    const saved = localStorage.getItem('readstay-volume');
+    if (saved !== null) volume = Number(saved) / 100;
+  } catch (e) {}
 
   let pending = [];  // 예약된 종소리 노드 (음소거 시 끊기 위해 보관)
 
@@ -226,8 +348,9 @@
     const master = ctx.createGain();
     master.connect(ctx.destination);
     pending.push(master);
+    const peak = Math.max(0.35 * volume, 0.0002);
     master.gain.setValueAtTime(0.0001, t);
-    master.gain.exponentialRampToValueAtTime(0.35, t + 0.01);
+    master.gain.exponentialRampToValueAtTime(peak, t + 0.01);
     master.gain.exponentialRampToValueAtTime(0.0001, t + 2.8);
     // 종 특유의 배음
     [[1, 1], [2, 0.5], [2.76, 0.25], [5.4, 0.12]].forEach(([ratio, amp]) => {
@@ -245,7 +368,7 @@
   // delaySec 뒤에 울리도록 오디오 시계에 미리 예약한다.
   // 오디오 시계는 탭이 백그라운드여도 느려지지 않아서 종이 정확한 시각에 울린다.
   function playBell(seq, delaySec = 0) {
-    if (!ctx || muted) return;
+    if (!ctx || muted || volume === 0) return;
     if (ctx.state === 'suspended') ctx.resume().catch(() => {});
     let t = ctx.currentTime + Math.max(delaySec, 0) + 0.05;
     seq.forEach(n => {
@@ -281,8 +404,13 @@
   for (let h = START_HOUR; h < END_HOUR; h++) {
     const el = document.createElement('div');
     el.className = 'slot';
-    el.dataset.period = h - START_HOUR + 1;
-    el.innerHTML = `<b>${h - START_HOUR + 1}교시</b>${h}:00–${h}:${pad(FOCUS_MIN)}`;
+    el.dataset.hour = h;
+    if (h === LUNCH_HOUR) {
+      el.classList.add('lunch');
+      el.innerHTML = `<b>점심</b>${pad(h)}:00–${pad(h + 1)}:00`;
+    } else {
+      el.innerHTML = `<b>${sessionName(sessionNo(h))}</b>${pad(h)}:00–${pad(h)}:${pad(FOCUS_MIN)}`;
+    }
     tt.appendChild(el);
   }
 
@@ -292,19 +420,18 @@
   let scheduledKey = null;
   const LOOKAHEAD = 70;  // 초. 백그라운드 탭은 타이머가 최대 1분 늦게 돌 수 있어 넉넉히 미리 예약
 
-  // 다음 상태 전환 시각과 그때 울릴 종을 계산
+  // 다음 상태 전환 시각과 그때 울릴 종 (bell이 null이면 종 없이 화면만 바뀜)
   function nextTransition(d) {
-    const secOfDay = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000;
+    const sec = secOfDay(d);
+    const h = d.getHours();
     const startSec = START_HOUR * 3600, endSec = END_HOUR * 3600;
-    if (secOfDay < startSec) return { at: startSec, key: `focus-1`, bell: START_BELL };
-    if (secOfDay >= endSec) return { at: 86400 + startSec, key: 'focus-1-next', bell: START_BELL };
-    const hourStart = d.getHours() * 3600;
-    const focusEnd = hourStart + FOCUS_MIN * 60;
-    const period = d.getHours() - START_HOUR + 1;
-    if (secOfDay < focusEnd) return { at: focusEnd, key: `break-${period}`, bell: BREAK_BELL };
-    const nextHour = hourStart + 3600;
-    if (nextHour >= endSec) return { at: nextHour, key: 'after', bell: END_BELL };
-    return { at: nextHour, key: `focus-${period + 1}`, bell: START_BELL };
+    if (sec < startSec) return { at: startSec, key: `focus-${START_HOUR}`, bell: START_BELL };
+    if (sec >= endSec) return { at: 86400 + startSec, key: 'next-day', bell: null };
+    const focusEnd = h * 3600 + FOCUS_MIN * 60;
+    if (h !== LUNCH_HOUR && sec < focusEnd) return { at: focusEnd, key: `break-${h}`, bell: BREAK_BELL };
+    const next = whatStartsAt(h + 1);
+    const bell = next.key === 'after' ? END_BELL : next.key === 'lunch' ? null : START_BELL;
+    return { at: (h + 1) * 3600, key: next.key, bell };
   }
 
   function tick() {
@@ -316,17 +443,18 @@
     if ($('remain').innerHTML !== html) $('remain').innerHTML = html;
     $('sub').textContent = st.sub;
     $('rule').textContent = st.rule;
-    document.body.classList.toggle('focus', st.type === 'focus');
-    document.body.classList.toggle('break', st.type === 'break');
+    ['focus', 'break', 'lunch'].forEach(c => document.body.classList.toggle(c, st.type === c));
     document.body.classList.toggle('idle', !st.type);
 
     const progress = st.total ? st.remain / st.total : (st.key === 'after' ? 0 : 1);
     $('ring').style.strokeDashoffset = CIRC * (1 - progress);
 
     document.querySelectorAll('.slot').forEach(el => {
-      const p = Number(el.dataset.period);
-      el.classList.toggle('now', st.period === p && st.type === 'focus');
-      el.classList.toggle('done', st.key === 'after' || (!!st.period && (p < st.period || (p === st.period && st.type === 'break'))));
+      const h = Number(el.dataset.hour);
+      const isNow = st.hour === h && (st.type === 'focus' || st.type === 'lunch');
+      const isDone = st.key === 'after' || (st.hour != null && (h < st.hour || (h === st.hour && st.type === 'break')));
+      el.classList.toggle('now', isNow);
+      el.classList.toggle('done', isDone);
     });
 
     document.title = st.remain == null ? '리드스테이' : `${remainText(st)} · ${st.phase}`;
@@ -336,11 +464,10 @@
       // 절전·장치 변경 등으로 오디오가 멈췄으면 다시 깨움
       if (ctx.state === 'suspended') ctx.resume().catch(() => {});
       const nx = nextTransition(d);
-      const secOfDay = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000;
-      const delay = nx.at - secOfDay;
+      const delay = nx.at - secOfDay(d);
       const key = `${d.toDateString()}-${nx.key}`;
       if (delay <= LOOKAHEAD && scheduledKey !== key) {
-        playBell(nx.bell, delay);
+        if (nx.bell) playBell(nx.bell, delay);
         scheduledKey = key;
       }
     }
@@ -349,18 +476,42 @@
   tick();
   setInterval(tick, 250);
 
-  // ---- 컨트롤 ----
+  // ---- 시작 화면 ----
   $('overlay').addEventListener('click', () => {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     $('overlay').remove();
     keepAwake();
   });
+
+  // ---- 설정 팝업 ----
+  const settings = $('settings');
+  const openSettings = () => { settings.hidden = false; $('btnClose').focus(); };
+  const closeSettings = () => { settings.hidden = true; $('btnSettings').focus(); };
+  $('btnSettings').onclick = openSettings;
+  $('btnClose').onclick = closeSettings;
+  settings.addEventListener('click', e => { if (e.target === settings) closeSettings(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !settings.hidden) closeSettings(); });
+
   $('btnTestStart').onclick = () => playBell(START_BELL);
   $('btnTestEnd').onclick = () => playBell(BREAK_BELL);
+
+  const volInput = $('volume');
+  const showVolume = () => { $('volumeOut').textContent = `${volInput.value}%`; };
+  volInput.value = Math.round(volume * 100);
+  showVolume();
+  volInput.addEventListener('input', () => {
+    volume = Number(volInput.value) / 100;
+    showVolume();
+    try { localStorage.setItem('readstay-volume', volInput.value); } catch (e) {}
+  });
+  // 볼륨을 바꾸면 이미 예약된 종은 새 볼륨으로 다시 예약
+  volInput.addEventListener('change', () => { if (pending.length) stopAllBells(); });
+
   $('btnMute').onclick = e => {
     muted = !muted;
     if (muted) stopAllBells();
-    e.currentTarget.textContent = muted ? '🔇 소리 꺼짐' : '🔊 소리 켜짐';
+    e.currentTarget.textContent = muted ? '🔇 종소리 꺼짐' : '🔊 종소리 켜짐';
+    e.currentTarget.classList.toggle('off', muted);
   };
   $('btnFull').onclick = () => {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
