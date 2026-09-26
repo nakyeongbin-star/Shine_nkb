@@ -206,6 +206,14 @@
   .panel textarea { resize: vertical; min-height: 4.5em; line-height: 1.5; }
   .field > .grow { flex: 1; display: flex; flex-direction: column; gap: 6px; }
   .check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .venues-edit { font-size: 14px; }
+  .venues-edit summary { cursor: pointer; color: #4a5a52; padding: 2px 0; }
+  .venues-edit[open] summary { margin-bottom: 8px; }
+  .venues { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+  .venue-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; padding: 10px; background: #f6f8f7; border-radius: 10px; }
+  .venue-row .v-name { grid-column: 1 / 3; font-weight: 700; }
+  .venue-row button { grid-column: 3; grid-row: 1; border: none; background: none; color: #8a978f; cursor: pointer; font: inherit; font-size: 13px; }
+  .venue-row button:hover { color: #c8503c; }
   .panel input[type="date"], .panel select {
     font: inherit; font-size: 14px; color: #1f2d26;
     border: 1px solid #d9e2dc; border-radius: 8px; padding: 6px 8px; background: #fff;
@@ -298,7 +306,7 @@
 </footer>
 
 <aside class="side side-left" id="sideInfo" aria-label="이용 안내">
-  <div class="side-title">이용 안내</div>
+  <div class="side-title" id="sideInfoTitle">이용 안내</div>
   <div class="wifi" id="sideWifi">
     <span class="k">Wi-Fi</span><b id="wifiName"></b>
     <span class="k">비밀번호</span><b id="wifiPw"></b>
@@ -360,30 +368,38 @@
       <p class="msg" id="cfgMsg" role="status"></p>
     </div>
     <div class="group">
-      <div class="group-label">좌우 안내</div>
-      <label class="check"><input type="checkbox" id="sideShow"> 좌우 안내 카드 보이기</label>
+      <div class="group-label">왼쪽 · 이용 안내</div>
+      <label class="check"><input type="checkbox" id="leftShow"> 보이기</label>
       <div class="field">
-        <span class="label">Wi-Fi</span>
-        <div class="grow">
-          <input type="text" id="sideWifiName" placeholder="이름 (비우면 안 보임)">
-          <input type="text" id="sideWifiPw" placeholder="비밀번호">
-        </div>
+        <span class="label">장소</span>
+        <select id="venueSelect" aria-label="진행 장소" style="flex:1"></select>
       </div>
+      <details class="venues-edit">
+        <summary>장소·Wi-Fi 목록 편집</summary>
+        <div class="venues" id="venueList"></div>
+        <button class="opt small" id="venueAdd" type="button">+ 장소 추가</button>
+      </details>
       <div class="field top">
         <span class="label">안내</span>
-        <div class="grow"><textarea id="sideRulesInput" rows="4" placeholder="한 줄에 하나씩"></textarea></div>
+        <div class="grow"><textarea id="leftRules" rows="4" placeholder="한 줄에 하나씩"></textarea></div>
       </div>
+      <button class="opt primary" id="leftApply" type="button">적용</button>
+      <p class="msg" id="leftMsg" role="status"></p>
+    </div>
+    <div class="group">
+      <div class="group-label">오른쪽 · 사이트 안내</div>
+      <label class="check"><input type="checkbox" id="rightShow"> 보이기</label>
       <div class="field top">
         <span class="label">소개</span>
-        <div class="grow"><textarea id="siteIntroInput" rows="3"></textarea></div>
+        <div class="grow"><textarea id="rightIntro" rows="3"></textarea></div>
       </div>
       <div class="field">
         <span class="label">주소</span>
-        <div class="grow"><input type="text" id="siteUrlInput" placeholder="https://"></div>
+        <div class="grow"><input type="text" id="rightUrl" placeholder="https://"></div>
       </div>
-      <p class="hint">왼쪽은 이용 안내, 오른쪽은 사이트 소개와 QR 코드예요. 3:2보다 네모난 화면에서는 자리가 좁아 자동으로 숨겨요.</p>
-      <button class="opt primary" id="sideApply" type="button">적용</button>
-      <p class="msg" id="sideMsg" role="status"></p>
+      <p class="hint">주소를 바꾸면 QR 코드도 새로 만들어져요. 좌우 카드는 3:2보다 네모난 화면에서는 자리가 좁아 자동으로 숨겨요.</p>
+      <button class="opt primary" id="rightApply" type="button">적용</button>
+      <p class="msg" id="rightMsg" role="status"></p>
     </div>
   </div>
 </div>
@@ -853,19 +869,27 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   fillScheduleForm();
 
   // ---- 좌우 안내 카드 ----
+  // venues: 진행 장소별 Wi-Fi (보통 두 곳 중 한 곳에서 진행). left/right 는 따로 설정·저장.
   const SIDE_KEY = 'readstay-side';
   const DEFAULT_SIDE = {
-    show: true,
-    wifiName: '', wifiPw: '',
-    rules: ['통화는 공간 밖에서 해 주세요', '잠시 자리를 비울 땐 짐을 두고 가셔도 돼요', '문은 살살 여닫아 주세요', '쉬는 시간엔 가볍게 스트레칭'],
-    intro: '함께 읽고 나누는 독서 모임\n일정과 신청은 사이트에서',
-    url: 'https://read365.co.kr/',
+    venues: [
+      { id: 'party-study', name: '파티앤스터디', wifiName: '', wifiPw: '' },
+      { id: 'maeum-on', name: '마음에온', wifiName: '', wifiPw: '' },
+    ],
+    left: {
+      show: true,
+      venueId: 'party-study',
+      rules: ['통화는 공간 밖에서 해 주세요', '잠시 자리를 비울 땐 짐을 두고 가셔도 돼요', '문은 살살 여닫아 주세요', '쉬는 시간엔 가볍게 스트레칭'],
+    },
+    right: { show: true, intro: '함께 읽고 나누는 독서 모임\n일정과 신청은 사이트에서', url: 'https://read365.co.kr/' },
   };
-  let side = DEFAULT_SIDE;
+  let side = structuredClone(DEFAULT_SIDE);
   try {
     const saved = JSON.parse(localStorage.getItem(SIDE_KEY));
-    if (saved && Array.isArray(saved.rules)) side = { ...DEFAULT_SIDE, ...saved };
+    if (saved && saved.left && saved.right && Array.isArray(saved.venues)) side = saved;
   } catch (e) {}
+  const saveSide = () => { try { localStorage.setItem(SIDE_KEY, JSON.stringify(side)); } catch (e) {} };
+  const currentVenue = () => side.venues.find(v => v.id === side.left.venueId);
 
   function qrSvg(text) {
     const q = qrcode(0, 'M');
@@ -879,44 +903,104 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   const shortUrl = url => url.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
   function renderSide() {
-    $('siteLogo').src = document.querySelector('.brand-logo').src;  // 상단 로고 이미지를 재사용
-    $('sideInfo').hidden = !side.show;
-    $('sideSite').hidden = !side.show || !side.url;
-    $('sideWifi').hidden = !side.wifiName;
-    $('wifiName').textContent = side.wifiName;
-    $('wifiPw').textContent = side.wifiPw || '없음';
+    // 왼쪽
+    const venue = currentVenue();
+    $('sideInfo').hidden = !side.left.show;
+    $('sideInfoTitle').textContent = venue ? `${venue.name} · 이용 안내` : '이용 안내';
+    $('sideWifi').hidden = !(venue && venue.wifiName);
+    $('wifiName').textContent = venue ? venue.wifiName : '';
+    $('wifiPw').textContent = venue && venue.wifiPw ? venue.wifiPw : '없음';
     const ul = $('sideRules');
     ul.innerHTML = '';
-    side.rules.forEach(t => { const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
-    $('siteIntro').textContent = side.intro;
-    $('siteUrl').textContent = shortUrl(side.url);
-    try { $('siteQr').innerHTML = side.url ? qrSvg(side.url) : ''; } catch (e) { $('siteQr').innerHTML = ''; }
+    side.left.rules.forEach(t => { const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
+    // 오른쪽
+    $('siteLogo').src = document.querySelector('.brand-logo').src;  // 상단 로고 이미지를 재사용
+    $('sideSite').hidden = !side.right.show || !side.right.url;
+    $('siteIntro').textContent = side.right.intro;
+    $('siteUrl').textContent = shortUrl(side.right.url);
+    try { $('siteQr').innerHTML = side.right.url ? qrSvg(side.right.url) : ''; } catch (e) { $('siteQr').innerHTML = ''; }
+  }
+
+  // 장소 목록 편집 행
+  function venueRow(v) {
+    const row = document.createElement('div');
+    row.className = 'venue-row';
+    row.dataset.id = v.id;
+    row.innerHTML = `
+      <input type="text" class="v-name" placeholder="장소 이름" aria-label="장소 이름">
+      <button type="button" aria-label="이 장소 삭제">삭제</button>
+      <input type="text" class="v-wifi" placeholder="Wi-Fi 이름" aria-label="Wi-Fi 이름">
+      <input type="text" class="v-pw" placeholder="비밀번호" aria-label="Wi-Fi 비밀번호">`;
+    row.querySelector('.v-name').value = v.name;
+    row.querySelector('.v-wifi').value = v.wifiName;
+    row.querySelector('.v-pw').value = v.wifiPw;
+    row.querySelector('.v-name').addEventListener('input', refreshVenueSelect);
+    row.querySelector('button').onclick = () => { row.remove(); refreshVenueSelect(); };
+    return row;
+  }
+  const readVenueRows = () => [...document.querySelectorAll('#venueList .venue-row')].map(r => ({
+    id: r.dataset.id,
+    name: r.querySelector('.v-name').value.trim(),
+    wifiName: r.querySelector('.v-wifi').value.trim(),
+    wifiPw: r.querySelector('.v-pw').value.trim(),
+  }));
+  // 편집 중인 목록에 맞춰 장소 선택 드롭다운을 다시 채움 (선택은 유지)
+  function refreshVenueSelect() {
+    const sel = $('venueSelect');
+    const keep = sel.value || side.left.venueId;
+    sel.innerHTML = '<option value="">장소 없음 (Wi-Fi 안 보임)</option>';
+    readVenueRows().forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.id;
+      o.textContent = v.name || '(이름 없음)';
+      sel.appendChild(o);
+    });
+    sel.value = [...sel.options].some(o => o.value === keep) ? keep : '';
   }
   function fillSideForm() {
-    $('sideShow').checked = side.show;
-    $('sideWifiName').value = side.wifiName;
-    $('sideWifiPw').value = side.wifiPw;
-    $('sideRulesInput').value = side.rules.join('\n');
-    $('siteIntroInput').value = side.intro;
-    $('siteUrlInput').value = side.url;
-    $('sideMsg').textContent = '';
+    const list = $('venueList');
+    list.innerHTML = '';
+    side.venues.forEach(v => list.appendChild(venueRow(v)));
+    $('venueSelect').value = '';
+    refreshVenueSelect();
+    $('venueSelect').value = currentVenue() ? side.left.venueId : '';
+    $('leftShow').checked = side.left.show;
+    $('leftRules').value = side.left.rules.join('\n');
+    $('rightShow').checked = side.right.show;
+    $('rightIntro').value = side.right.intro;
+    $('rightUrl').value = side.right.url;
+    $('leftMsg').textContent = '';
+    $('rightMsg').textContent = '';
   }
-  $('sideApply').onclick = () => {
-    const msg = $('sideMsg');
-    let url = $('siteUrlInput').value.trim();
-    if (url && !/^https?:\/\//.test(url)) url = 'https://' + url;
-    side = {
-      show: $('sideShow').checked,
-      wifiName: $('sideWifiName').value.trim(),
-      wifiPw: $('sideWifiPw').value.trim(),
-      rules: $('sideRulesInput').value.split('\n').map(t => t.trim()).filter(Boolean),
-      intro: $('siteIntroInput').value.trim(),
-      url,
+  $('venueAdd').onclick = () => {
+    const row = venueRow({ id: 'v' + Date.now(), name: '', wifiName: '', wifiPw: '' });
+    $('venueList').appendChild(row);
+    refreshVenueSelect();
+    row.querySelector('.v-name').focus();
+  };
+  const okMsg = (id, text) => { $(id).textContent = text; $(id).className = 'msg ok'; };
+  const errMsg = (id, text) => { $(id).textContent = text; $(id).className = 'msg err'; };
+
+  $('leftApply').onclick = () => {
+    const venues = readVenueRows();
+    if (venues.some(v => !v.name)) return errMsg('leftMsg', '이름이 빈 장소가 있어요. 이름을 넣거나 삭제해 주세요.');
+    side.venues = venues;
+    side.left = {
+      show: $('leftShow').checked,
+      venueId: $('venueSelect').value,
+      rules: $('leftRules').value.split('\n').map(t => t.trim()).filter(Boolean),
     };
-    try { localStorage.setItem(SIDE_KEY, JSON.stringify(side)); } catch (e) {}
+    saveSide();
     renderSide();
-    msg.textContent = '적용했어요.';
-    msg.className = 'msg ok';
+    okMsg('leftMsg', '적용했어요.');
+  };
+  $('rightApply').onclick = () => {
+    let url = $('rightUrl').value.trim();
+    if (url && !/^https?:\/\//.test(url)) url = 'https://' + url;
+    side.right = { show: $('rightShow').checked, intro: $('rightIntro').value.trim(), url };
+    saveSide();
+    renderSide();
+    okMsg('rightMsg', '적용했어요.');
   };
   renderSide();
   fillSideForm();
