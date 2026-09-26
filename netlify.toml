@@ -1,0 +1,13 @@
+# Netlify 배포 설정: 리드스테이 타이머(정적 페이지)만 올린다.
+# 도서관리시스템(server/)은 Node 서버가 필요해서 Netlify에서는 동작하지 않는다.
+[build]
+  base = "public"   # package.json이 없는 폴더라 npm install을 건너뜀
+  publish = "."
+  command = ""
+
+# 사이트 주소(/)로 들어오면 타이머를 보여준다
+[[redirects]]
+  from = "/"
+  to = "/readstay.html"
+  status = 200
+  force = true
